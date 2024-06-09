@@ -55,8 +55,9 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                                                    final TransportProtocol protocol,
                                                    final byte[] delimiter,
                                                    final int maxFrameLength,
-                                                   final BlockingQueue<ByteArrayMessage> messages) {
-        this(log, address, port, protocol, delimiter, maxFrameLength, messages, FilteringStrategy.DISABLED);
+                                                   final BlockingQueue<ByteArrayMessage> messages,
+                                                   final NettyTransports.NettyTransport nettyTransport) {
+        this(log, address, port, protocol, delimiter, maxFrameLength, messages, FilteringStrategy.DISABLED, nettyTransport);
     }
 
 
@@ -79,8 +80,9 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                                                    final byte[] delimiter,
                                                    final int maxFrameLength,
                                                    final BlockingQueue<ByteArrayMessage> messages,
-                                                   final FilteringStrategy filteringStrategy) {
-        super(address, port, protocol);
+                                                   final FilteringStrategy filteringStrategy,
+                                                   final NettyTransports.NettyTransport nettyTransport) {
+        super(address, port, protocol, nettyTransport);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
 
         final ByteArrayMessageChannelHandler byteArrayMessageChannelHandler;

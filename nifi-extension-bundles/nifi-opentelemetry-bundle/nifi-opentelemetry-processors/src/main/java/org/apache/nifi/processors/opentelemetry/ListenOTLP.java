@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.EventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processors.opentelemetry.protocol.TelemetryAttributeName;
@@ -214,6 +215,7 @@ public class ListenOTLP extends AbstractProcessor {
     }
 
     private EventServerFactory createEventServerFactory(final ProcessContext context) throws UnknownHostException {
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
         final String address = context.getProperty(ADDRESS).getValue();
         final InetAddress serverAddress = InetAddress.getByName(address);
         final int port = context.getProperty(PORT).asInteger();
@@ -227,7 +229,7 @@ public class ListenOTLP extends AbstractProcessor {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final SSLContext sslContext = sslContextService.createContext();
 
-        final NettyEventServerFactory eventServerFactory = new HttpServerFactory(getLogger(), messages, serverAddress, port, sslContext);
+        final NettyEventServerFactory eventServerFactory = new HttpServerFactory(getLogger(), messages, serverAddress, port, sslContext, nettyTransport);
         eventServerFactory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
         final int workerThreads = context.getProperty(WORKER_THREADS).asInteger();
         eventServerFactory.setWorkerThreads(workerThreads);

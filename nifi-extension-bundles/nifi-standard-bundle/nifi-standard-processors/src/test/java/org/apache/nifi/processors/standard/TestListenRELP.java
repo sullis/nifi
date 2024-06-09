@@ -24,6 +24,7 @@ import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processors.standard.relp.event.RELPMessage;
@@ -243,7 +244,8 @@ public class TestListenRELP {
     }
 
     private void sendMessages(final int port, final byte[] relpMessages, final SSLContext sslContext) throws Exception {
-        final ByteArrayNettyEventSenderFactory eventSenderFactory = new ByteArrayNettyEventSenderFactory(runner.getLogger(), LOCALHOST, port, TransportProtocol.TCP);
+        final ByteArrayNettyEventSenderFactory eventSenderFactory = new ByteArrayNettyEventSenderFactory(runner.getLogger(), LOCALHOST, port, TransportProtocol.TCP,
+            NettyTransports.NIO);
         eventSenderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         eventSenderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         if (sslContext != null) {

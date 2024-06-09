@@ -23,6 +23,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -184,7 +185,8 @@ public class TestPutUDP {
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         final InetAddress listenAddress = InetAddress.getByName(UDP_SERVER_ADDRESS);
         NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
-                runner.getLogger(), listenAddress, port, TransportProtocol.UDP, delimiter, frameSize, messages);
+                runner.getLogger(), listenAddress, port, TransportProtocol.UDP, delimiter, frameSize, messages,
+                NettyTransports.NIO);
         serverFactory.setSocketReceiveBuffer(MAX_FRAME_LENGTH);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());

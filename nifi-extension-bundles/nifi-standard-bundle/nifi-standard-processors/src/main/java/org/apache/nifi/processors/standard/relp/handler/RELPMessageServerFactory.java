@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard.relp.handler;
 
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.standard.relp.event.RELPMessage;
@@ -46,8 +47,9 @@ public class RELPMessageServerFactory extends NettyEventServerFactory {
                                     final InetAddress address,
                                     final int port,
                                     final Charset charset,
-                                    final BlockingQueue<RELPMessage> events) {
-        super(address, port, TransportProtocol.TCP);
+                                    final BlockingQueue<RELPMessage> events,
+                                    final NettyTransports.NettyTransport nettyTransport) {
+        super(address, port, TransportProtocol.TCP, nettyTransport);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
         final RELPMessageChannelHandler relpChannelHandler = new RELPMessageChannelHandler(events, charset);
 

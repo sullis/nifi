@@ -43,8 +43,9 @@ public class StringNettyEventSenderFactory extends NettyEventSenderFactory<Strin
      * @param charset Character set for String encoding
      * @param lineEnding Line Ending for optional encoding
      */
-    public StringNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol, final Charset charset, final LineEnding lineEnding) {
-        super(address, port, protocol);
+    public StringNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol, final Charset charset, final LineEnding lineEnding, final
+        NettyTransports.NettyTransport nettyTransport) {
+        super(address, port, protocol, nettyTransport);
         final List<ChannelHandler> handlers = new ArrayList<>();
         handlers.add(new StringEncoder(charset));
 

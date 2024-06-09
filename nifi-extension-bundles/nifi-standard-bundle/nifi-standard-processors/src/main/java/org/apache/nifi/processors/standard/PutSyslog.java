@@ -44,6 +44,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.configuration.LineEnding;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -277,8 +278,10 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
 
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
+
         final LineEnding lineEnding = TransportProtocol.TCP.equals(protocol) ? LineEnding.UNIX : LineEnding.NONE;
-        final StringNettyEventSenderFactory factory = new StringNettyEventSenderFactory(getLogger(), hostname, port, protocol, charset, lineEnding);
+        final StringNettyEventSenderFactory factory = new StringNettyEventSenderFactory(getLogger(), hostname, port, protocol, charset, lineEnding, nettyTransport);
         factory.setThreadNamePrefix(String.format("%s[%s]", PutSyslog.class.getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());

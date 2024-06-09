@@ -21,6 +21,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -157,7 +158,8 @@ class TestUDPEventRecordSink {
                 TransportProtocol.UDP,
                 DELIMITER,
                 MAX_FRAME_SIZE,
-                messages
+                messages,
+                NettyTransports.NIO
         );
         serverFactory.setShutdownQuietPeriod(Duration.ZERO);
         serverFactory.setShutdownTimeout(Duration.ZERO);

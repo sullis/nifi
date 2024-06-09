@@ -31,6 +31,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
@@ -126,9 +127,11 @@ public class ListenRELP extends AbstractProcessor {
         errorEvents = new LinkedBlockingQueue<>();
         eventBatcher = getEventBatcher();
 
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
+
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
-        final NettyEventServerFactory eventFactory = getNettyEventServerFactory(hostname, port, charset, events);
+        final NettyEventServerFactory eventFactory = getNettyEventServerFactory(hostname, port, charset, events, nettyTransport);
         eventFactory.setSocketReceiveBuffer(bufferSize);
         eventFactory.setWorkerThreads(workerThreads);
         configureFactoryForSsl(context, eventFactory);
@@ -310,8 +313,8 @@ public class ListenRELP extends AbstractProcessor {
         }
     }
 
-    private NettyEventServerFactory getNettyEventServerFactory(final InetAddress hostname, final int port, final Charset charset, final BlockingQueue events) {
-        return new RELPMessageServerFactory(getLogger(), hostname, port, charset, events);
+    private NettyEventServerFactory getNettyEventServerFactory(final InetAddress hostname, final int port, final Charset charset, final BlockingQueue events, final NettyTransports.NettyTransport nettyTransport) {
+        return new RELPMessageServerFactory(getLogger(), hostname, port, charset, events, nettyTransport);
     }
 
     private String getMessageDemarcator(final ProcessContext context) {

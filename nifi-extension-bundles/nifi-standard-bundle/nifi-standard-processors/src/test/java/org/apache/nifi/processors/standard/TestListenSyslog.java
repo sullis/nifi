@@ -21,6 +21,7 @@ import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -210,7 +211,8 @@ public class TestListenSyslog {
     }
 
     private void sendMessages(final TransportProtocol protocol, final int port, final LineEnding lineEnding, final String... messages) throws Exception {
-        final StringNettyEventSenderFactory eventSenderFactory = new StringNettyEventSenderFactory(runner.getLogger(), LOCALHOST_ADDRESS, port, protocol, CHARSET, lineEnding);
+        final StringNettyEventSenderFactory eventSenderFactory = new StringNettyEventSenderFactory(runner.getLogger(), LOCALHOST_ADDRESS, port, protocol, CHARSET, lineEnding,
+            NettyTransports.NIO);
         eventSenderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         eventSenderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventSenderFactory.setTimeout(SENDER_TIMEOUT);

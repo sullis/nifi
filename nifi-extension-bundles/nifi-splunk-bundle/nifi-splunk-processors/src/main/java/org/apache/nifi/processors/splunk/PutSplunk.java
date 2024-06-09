@@ -40,6 +40,7 @@ import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -137,8 +138,8 @@ public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
     }
 
     @Override
-    protected NettyEventSenderFactory<byte[]> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
-        return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+    protected NettyEventSenderFactory<byte[]> getNettyEventSenderFactory(final String hostname, final int port, final String protocol, NettyTransports.NettyTransport nettyTransport) {
+        return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol), nettyTransport);
     }
 
     /**

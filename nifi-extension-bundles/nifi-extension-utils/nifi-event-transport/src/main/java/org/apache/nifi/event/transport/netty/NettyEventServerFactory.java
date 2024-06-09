@@ -79,10 +79,14 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
     private BufferAllocator bufferAllocator = BufferAllocator.POOLED;
 
-    public NettyEventServerFactory(final InetAddress address, final int port, final TransportProtocol protocol) {
+    private final NettyTransports.NettyTransport nettyTransport;
+
+    public NettyEventServerFactory(final InetAddress address, final int port, final TransportProtocol protocol, final NettyTransports.NettyTransport nettyTransport) {
+        super(nettyTransport);
         this.address = address;
         this.port = port;
         this.protocol = protocol;
+        this.nettyTransport = nettyTransport;
     }
 
     /**
@@ -204,12 +208,12 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private AbstractBootstrap<?, ?> getBootstrap() {
         if (TransportProtocol.UDP.equals(protocol)) {
             final Bootstrap bootstrap = new Bootstrap();
-            bootstrap.channel(NioDatagramChannel.class);
+            bootstrap.channel(this.nettyTransport.datagramChannelClazz());
             bootstrap.handler(getChannelInitializer());
             return bootstrap;
         } else {
             final ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.channel(NioServerSocketChannel.class);
+            bootstrap.channel(this.nettyTransport.serverSocketClazz());
             bootstrap.childHandler(getChannelInitializer());
             return bootstrap;
         }

@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -250,7 +251,9 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
         final String protocol = getProtocol(context);
         final boolean singleEventPerConnection = context.getProperty(CONNECTION_PER_FLOWFILE).getValue() != null ? context.getProperty(CONNECTION_PER_FLOWFILE).asBoolean() : false;
 
-        final NettyEventSenderFactory<T> factory = getNettyEventSenderFactory(hostname, port, protocol);
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
+
+        final NettyEventSenderFactory<T> factory = getNettyEventSenderFactory(hostname, port, protocol, nettyTransport);
         factory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());
@@ -480,5 +483,5 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
         return context.getProperty(PROTOCOL).getValue();
     }
 
-    protected abstract NettyEventSenderFactory<T> getNettyEventSenderFactory(String hostname, int port, String protocol);
+    protected abstract NettyEventSenderFactory<T> getNettyEventSenderFactory(String hostname, int port, String protocol, NettyTransports.NettyTransport nettyTransport);
 }

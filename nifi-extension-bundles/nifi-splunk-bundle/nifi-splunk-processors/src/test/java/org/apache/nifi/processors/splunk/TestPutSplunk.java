@@ -23,6 +23,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -282,7 +283,8 @@ public class TestPutSplunk {
         runner.setProperty(PutSplunk.PROTOCOL, protocol.name());
         final byte[] delimiter = OUTGOING_MESSAGE_DELIMITER.getBytes(CHARSET);
 
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), 0, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
+        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), 0, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages,
+            NettyTransports.NIO);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();

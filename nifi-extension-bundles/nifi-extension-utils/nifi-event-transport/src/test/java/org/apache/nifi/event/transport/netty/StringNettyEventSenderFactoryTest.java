@@ -182,7 +182,7 @@ public class StringNettyEventSenderFactoryTest {
 
     private NettyEventSenderFactory<String> getEventSenderFactory(final int port) {
         final StringNettyEventSenderFactory senderFactory = new StringNettyEventSenderFactory(log,
-                ADDRESS.getHostAddress(), port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
+                ADDRESS.getHostAddress(), port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX, NettyTransports.NIO);
         senderFactory.setTimeout(DEFAULT_TIMEOUT);
         senderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         senderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
@@ -191,7 +191,7 @@ public class StringNettyEventSenderFactoryTest {
 
     private NettyEventServerFactory getEventServerFactory(final int port, final BlockingQueue<ByteArrayMessage> messages) {
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(log,
-                ADDRESS, port, TransportProtocol.TCP, DELIMITER.getBytes(), MAX_FRAME_LENGTH, messages);
+                ADDRESS, port, TransportProtocol.TCP, DELIMITER.getBytes(), MAX_FRAME_LENGTH, messages, NettyTransports.NIO);
         factory.setWorkerThreads(SINGLE_THREAD);
         factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());

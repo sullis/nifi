@@ -26,6 +26,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
@@ -166,11 +167,12 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
     }
 
     private EventSender<byte[]> getEventSender(final ConfigurationContext context) {
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         transitUri = String.format(TRANSIT_URI_FORMAT, hostname, port);
 
-        final ByteArrayNettyEventSenderFactory factory = new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.UDP);
+        final ByteArrayNettyEventSenderFactory factory = new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.UDP, nettyTransport);
         factory.setShutdownQuietPeriod(Duration.ZERO);
         factory.setShutdownTimeout(Duration.ZERO);
         factory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));

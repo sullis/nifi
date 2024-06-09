@@ -24,6 +24,7 @@ import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
 
@@ -45,8 +46,9 @@ public class HttpServerFactory extends NettyEventServerFactory {
 
     private static final Set<String> SUPPORTED_CIPHER_SUITES = new LinkedHashSet<>(Http2SecurityUtil.CIPHERS);
 
-    public HttpServerFactory(final ComponentLog log, final BlockingQueue<Message> messages, final InetAddress address, final int port, final SSLContext sslContext) {
-        super(address, port, TransportProtocol.TCP);
+    public HttpServerFactory(final ComponentLog log, final BlockingQueue<Message> messages, final InetAddress address, final int port, final SSLContext sslContext, final
+        NettyTransports.NettyTransport nettyTransport) {
+        super(address, port, TransportProtocol.TCP, nettyTransport);
 
         final SSLParameters sslParameters = getApplicationSslParameters(sslContext);
         setSslParameters(sslParameters);

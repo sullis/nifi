@@ -37,8 +37,8 @@ public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<In
      * @param port Remote Port Number
      * @param protocol Channel Protocol
      */
-    public StreamingNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol) {
-        super(address, port, protocol);
+    public StreamingNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol, NettyTransports.NettyTransport nettyTransport) {
+        super(address, port, protocol, nettyTransport);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
         final InputStreamMessageEncoder inputStreamMessageEncoder = new InputStreamMessageEncoder();
 

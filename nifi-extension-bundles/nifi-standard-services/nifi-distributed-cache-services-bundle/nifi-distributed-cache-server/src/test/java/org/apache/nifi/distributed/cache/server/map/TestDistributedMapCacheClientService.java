@@ -27,6 +27,7 @@ import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
@@ -66,7 +67,8 @@ public class TestDistributedMapCacheClientService {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         final InetAddress serverAddress = InetAddress.getByName(LOCALHOST);
-        final NettyEventServerFactory serverFactory = new NettyEventServerFactory(serverAddress, port, TransportProtocol.TCP);
+        final NettyEventServerFactory serverFactory = new NettyEventServerFactory(serverAddress, port, TransportProtocol.TCP,
+            NettyTransports.NIO);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownQuietPeriod.QUICK.getDuration());
         final ComponentLog log = runner.getLogger();

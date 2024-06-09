@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.DelimitedInputStream;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.event.transport.netty.StreamingNettyEventSenderFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -158,8 +159,8 @@ public class PutTCP extends AbstractPutEventProcessor<InputStream> {
     }
 
     @Override
-    protected NettyEventSenderFactory<InputStream> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
-        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.TCP);
+    protected NettyEventSenderFactory<InputStream> getNettyEventSenderFactory(final String hostname, final int port, final String protocol, final NettyTransports.NettyTransport nettyTransport) {
+        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.TCP, nettyTransport);
     }
 
     private void sendFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {

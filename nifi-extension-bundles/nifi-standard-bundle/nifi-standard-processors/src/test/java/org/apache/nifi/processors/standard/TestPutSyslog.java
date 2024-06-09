@@ -23,6 +23,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockComponentLog;
@@ -92,7 +93,8 @@ public class TestPutSyslog {
 
         address = InetAddress.getByName(ADDRESS);
         final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
-            new MockComponentLog("id", "TestPutSyslog"), address, 0, protocol, delimiter, MAX_FRAME_LENGTH, messages);
+            new MockComponentLog("id", "TestPutSyslog"), address, 0, protocol, delimiter, MAX_FRAME_LENGTH, messages,
+            NettyTransports.NIO);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         this.eventServer = serverFactory.getEventServer();

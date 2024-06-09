@@ -23,6 +23,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processors.standard.property.TransmissionStrategy;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -295,7 +296,8 @@ public class TestPutTCP {
         messages = new LinkedBlockingQueue<>();
         final InetAddress listenAddress = InetAddress.getByName(TCP_SERVER_ADDRESS);
         NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(),
-                listenAddress, 0, TransportProtocol.TCP, delimiter.getBytes(), VALID_LARGE_FILE_SIZE, messages);
+                listenAddress, 0, TransportProtocol.TCP, delimiter.getBytes(), VALID_LARGE_FILE_SIZE, messages,
+            NettyTransports.NIO);
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
         }

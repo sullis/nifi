@@ -34,6 +34,11 @@ class EventLoopGroupFactory {
     private String threadNamePrefix = DEFAULT_THREAD_NAME_PREFIX;
 
     private int workerThreads;
+    private final NettyTransports.NettyTransport nettyTransport;
+
+    public EventLoopGroupFactory(NettyTransports.NettyTransport nettyTransport) {
+        this.nettyTransport = nettyTransport;
+    }
 
     /**
      * Set Thread Name Prefix used in Netty NioEventLoopGroup defaults to NettyChannel
@@ -54,7 +59,7 @@ class EventLoopGroupFactory {
     }
 
     protected EventLoopGroup getEventLoopGroup() {
-        return new NioEventLoopGroup(workerThreads, getThreadFactory());
+        return this.nettyTransport.createEventLoopGroup(workerThreads, getThreadFactory());
     }
 
     private ThreadFactory getThreadFactory() {

@@ -29,6 +29,7 @@ import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
@@ -140,7 +141,9 @@ public class ListenBeats extends AbstractProcessor {
         final String msgDemarcator = getMessageDemarcator(context);
         messageDemarcatorBytes = msgDemarcator.getBytes(charset);
 
-        final NettyEventServerFactory eventFactory = new BeatsMessageServerFactory(getLogger(), address, port, events);
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
+
+        final NettyEventServerFactory eventFactory = new BeatsMessageServerFactory(getLogger(), address, port, events, nettyTransport);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {

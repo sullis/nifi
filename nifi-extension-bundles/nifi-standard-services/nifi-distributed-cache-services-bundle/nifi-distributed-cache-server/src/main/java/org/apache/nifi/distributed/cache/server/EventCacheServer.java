@@ -21,6 +21,7 @@ import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.security.util.ClientAuth;
 
@@ -92,7 +93,8 @@ public abstract class EventCacheServer implements CacheServer {
      * @return Netty Event Server Factory
      */
     protected NettyEventServerFactory createEventServerFactory(final String identifier, final SSLContext sslContext) {
-        final NettyEventServerFactory eventServerFactory = new NettyEventServerFactory(ALL_ADDRESSES, port, TransportProtocol.TCP);
+        final NettyTransports.NettyTransport nettyTransport = NettyTransports.NIO; // todo fixme
+        final NettyEventServerFactory eventServerFactory = new NettyEventServerFactory(ALL_ADDRESSES, port, TransportProtocol.TCP, nettyTransport);
         eventServerFactory.setSslContext(sslContext);
         eventServerFactory.setClientAuth(ClientAuth.REQUIRED);
 

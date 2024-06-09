@@ -18,6 +18,7 @@ package org.apache.nifi.processors.beats.server;
 
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyTransports;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.beats.handler.BatchChannelInboundHandler;
@@ -44,8 +45,9 @@ public class BeatsMessageServerFactory extends NettyEventServerFactory {
     public BeatsMessageServerFactory(final ComponentLog log,
                                      final InetAddress address,
                                      final int port,
-                                     final BlockingQueue<BatchMessage> events) {
-        super(address, port, TransportProtocol.TCP);
+                                     final BlockingQueue<BatchMessage> events,
+                                     final NettyTransports.NettyTransport nettyTransport) {
+        super(address, port, TransportProtocol.TCP, nettyTransport);
         final MessageAckEncoder messageAckEncoder = new MessageAckEncoder(log);
         final BatchChannelInboundHandler batchChannelInboundHandler = new BatchChannelInboundHandler(log, events);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);

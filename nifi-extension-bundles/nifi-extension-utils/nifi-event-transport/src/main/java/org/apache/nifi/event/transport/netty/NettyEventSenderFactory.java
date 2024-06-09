@@ -26,8 +26,6 @@ import io.netty.channel.pool.ChannelHealthChecker;
 import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
 import io.netty.channel.pool.FixedChannelPool;
-import io.netty.channel.socket.nio.NioDatagramChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventSenderFactory;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
@@ -75,10 +73,14 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
 
-    public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol) {
+    private final NettyTransports.NettyTransport nettyTransport;
+
+    public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol, final NettyTransports.NettyTransport nettyTransport) {
+        super(nettyTransport);
         this.address = address;
         this.port = port;
         this.protocol = protocol;
+        this.nettyTransport = nettyTransport;
     }
 
     /**
@@ -173,9 +175,9 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         bootstrap.group(group);
 
         if (TransportProtocol.UDP.equals(protocol)) {
-            bootstrap.channel(NioDatagramChannel.class);
+            bootstrap.channel(this.nettyTransport.datagramChannelClazz());
         } else {
-            bootstrap.channel(NioSocketChannel.class);
+            bootstrap.channel(this.nettyTransport.socketChannelClazz());
         }
 
         setChannelOptions(bootstrap);
