@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.DeleteVersionRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteVersionRequest;
+import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
@@ -40,14 +40,14 @@ public class TestDeleteS3Object {
 
     private TestRunner runner = null;
     private DeleteS3Object mockDeleteS3Object = null;
-    private AmazonS3Client mockS3Client = null;
+    private S3Client mockS3Client = null;
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = Mockito.mock(AmazonS3Client.class);
+        mockS3Client = Mockito.mock(S3Client.class);
         mockDeleteS3Object = new DeleteS3Object() {
             @Override
-            protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
+            protected S3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
             }
         };
@@ -69,8 +69,8 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
         DeleteObjectRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("delete-key", request.getKey());
+        assertEquals("test-bucket", request.bucketName());
+        assertEquals("delete-key", request.key());
         Mockito.verify(mockS3Client, Mockito.never()).deleteVersion(Mockito.any(DeleteVersionRequest.class));
     }
 
@@ -95,7 +95,7 @@ public class TestDeleteS3Object {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.doThrow(new AmazonS3Exception("NoSuchBucket")).when(mockS3Client).deleteObject(Mockito.any());
+        Mockito.doThrow(S3ExceptionClient.builder().build()).when(mockS3Client).deleteObject(Mockito.any());
 
         runner.run(1);
 
@@ -119,9 +119,9 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteVersionRequest> captureRequest = ArgumentCaptor.forClass(DeleteVersionRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteVersion(captureRequest.capture());
         DeleteVersionRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("test-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
+        assertEquals("test-bucket", request.bucketName());
+        assertEquals("test-key", request.key());
+        assertEquals("test-version", request.versionId());
         Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
     }
 
@@ -142,9 +142,9 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteVersionRequest> captureRequest = ArgumentCaptor.forClass(DeleteVersionRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteVersion(captureRequest.capture());
         DeleteVersionRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("test-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
+        assertEquals("test-bucket", request.bucketName());
+        assertEquals("test-key", request.key());
+        assertEquals("test-version", request.versionId());
         Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
     }
 

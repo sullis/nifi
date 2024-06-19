@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -40,7 +39,7 @@ public interface AWSCredentialsProviderService extends AwsCredentialsProviderSer
      *
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
-    AWSCredentialsProvider getCredentialsProvider() throws ProcessException;
+    AwsCredentialsProvider getCredentialsProvider() throws ProcessException;
 
     /**
      * Default implementation of {@link AwsCredentialsProviderService#getAwsCredentialsProvider()} throwing UnsupportedOperationException.

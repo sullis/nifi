@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,7 +48,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 /**
  * Mock Processor implementation used to test CredentialsProviderFactory.
  */
-public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
+public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<S3Client> {
 
     public final List<PropertyDescriptor> properties = Arrays.asList(
             USE_DEFAULT_CREDENTIALS,
@@ -78,7 +78,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
     }
 
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+    protected S3Client createClient(final ProcessContext context, final AwsCredentialsProvider credentialsProvider, final Region region, final ClientOverrideConfiguration config,
                                           final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         return null;
     }

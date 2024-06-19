@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
@@ -71,27 +71,27 @@ public class TestStandardS3EncryptionService {
 
     @Test
     public void testRequests() {
-        final ObjectMetadata metadata = new ObjectMetadata();
-        final GetObjectRequest getObjectRequest = new GetObjectRequest("", "");
-        final InitiateMultipartUploadRequest initUploadRequest = new InitiateMultipartUploadRequest("", "");
-        final PutObjectRequest putObjectRequest = new PutObjectRequest("", "", "");
-        final UploadPartRequest uploadPartRequest = new UploadPartRequest();
+        final ObjectMetadata metadata = ObjectMetadata.builder().build();
+        final GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket("").key("").build();
+        final InitiateMultipartUploadRequest initUploadRequest = InitiateMultipartUploadRequest.builder().build();
+        final PutObjectRequest putObjectRequest = PutObjectRequest.builder().build();
+        final UploadPartRequest uploadPartRequest = UploadPartRequest.builder().build();
 
         service.configureGetObjectRequest(getObjectRequest, metadata);
-        assertNull(getObjectRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertNull(getObjectRequest.sseCustomerKey());
+        assertNull(metadata.sseAlgorithm());
 
         service.configureUploadPartRequest(uploadPartRequest, metadata);
-        assertNull(uploadPartRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertNull(uploadPartRequest.sseCustomerKey());
+        assertNull(metadata.sseAlgorithm());
 
         service.configurePutObjectRequest(putObjectRequest, metadata);
-        assertNull(putObjectRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertNull(putObjectRequest.sseCustomerKey());
+        assertNull(metadata.sseAlgorithm());
 
         service.configureInitiateMultipartUploadRequest(initUploadRequest, metadata);
-        assertNull(initUploadRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertNull(initUploadRequest.sseCustomerKey());
+        assertNull(metadata.sseAlgorithm());
     }
 
     @Test

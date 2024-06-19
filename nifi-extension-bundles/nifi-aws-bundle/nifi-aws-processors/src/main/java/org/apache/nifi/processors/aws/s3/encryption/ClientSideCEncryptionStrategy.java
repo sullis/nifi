@@ -17,14 +17,14 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
-import com.amazonaws.services.s3.model.CryptoConfigurationV2;
-import com.amazonaws.services.s3.model.EncryptionMaterials;
-import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3EncryptionClientV2Client;
+import software.amazon.awssdk.services.s3.model.CryptoConfigurationV2;
+import software.amazon.awssdk.services.s3.S3EncryptionClientV2Builder;
+import software.amazon.awssdk.services.s3.model.EncryptionMaterials;
+import software.amazon.awssdk.services.s3.model.StaticEncryptionMaterialsProvider;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
@@ -49,7 +49,7 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
+    public S3Client createEncryptionClient(final Consumer<S3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
         final ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
         if (!keyValidationResult.isValid()) {
             throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());
@@ -57,15 +57,15 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
 
         final byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
         final SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
-        final StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
+        final StaticEncryptionMaterialsProvider encryptionMaterialsProvider = StaticEncryptionMaterialsProvider.builder().build();
 
-        final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
+        final CryptoConfigurationV2 cryptoConfig = CryptoConfigurationV2.builder().build();
         // A placeholder KMS Region needs to be set due to bug https://github.com/aws/aws-sdk-java/issues/2530
-        cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.DEFAULT_REGION));
+        cryptoConfig.awsKmsRegion(Region.getRegion(Region.DEFAULT_REGION));
 
-        final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
-                .withCryptoConfiguration(cryptoConfig)
-                .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
+        final S3EncryptionClientV2Builder builder = S3EncryptionClientV2Client.encryptionBuilder()
+                .cryptoConfiguration(cryptoConfig)
+                .encryptionMaterialsProvider(encryptionMaterialsProvider);
         clientBuilder.accept(builder);
         return builder.build();
     }

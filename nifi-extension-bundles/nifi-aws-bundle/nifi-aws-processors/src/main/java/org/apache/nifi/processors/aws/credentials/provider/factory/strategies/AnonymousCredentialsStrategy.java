@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 
 /**
@@ -38,9 +37,9 @@ public class AnonymousCredentialsStrategy extends AbstractBooleanCredentialsStra
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
+    public AwsCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
         AnonymousAWSCredentials credentials = new AnonymousAWSCredentials();
-        return new AWSStaticCredentialsProvider(credentials);
+        return StaticCredentialsProvider.create(credentials);
     }
 
     @Override

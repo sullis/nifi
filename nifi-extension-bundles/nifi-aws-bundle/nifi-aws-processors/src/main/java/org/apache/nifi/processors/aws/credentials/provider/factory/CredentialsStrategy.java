@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
@@ -62,14 +61,14 @@ public interface CredentialsStrategy {
     /**
      * Creates an AWSCredentialsProvider instance for this strategy, given the properties defined by the user.
      */
-    AWSCredentialsProvider getCredentialsProvider(PropertyContext propertyContext);
+    AwsCredentialsProvider getCredentialsProvider(PropertyContext propertyContext);
 
     /**
      * Creates an AWSCredentialsProvider instance for this strategy, given the properties defined by the user and
      * the AWSCredentialsProvider from the winning primary strategy.
      */
-    AWSCredentialsProvider getDerivedCredentialsProvider(PropertyContext propertyContext,
-                                                         AWSCredentialsProvider primaryCredentialsProvider);
+    AwsCredentialsProvider getDerivedCredentialsProvider(PropertyContext propertyContext,
+                                                         AwsCredentialsProvider primaryCredentialsProvider);
 
     /**
      * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user.

@@ -106,7 +106,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
 
             // check for errors
             if (!response.failed().isEmpty()) {
-                throw new ProcessException(response.failed().get(0).toString());
+                throw new ProcessException(response.failed().(0).toString());
             }
 
             getLogger().info("Successfully deleted message from SQS for {}", flowFile);

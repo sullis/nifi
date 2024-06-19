@@ -171,7 +171,7 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
 
             if (response.unprocessedItems() != null) {
                 // Handle unprocessed items
-                final List<WriteRequest> unprocessedItems = response.unprocessedItems().get(table);
+                final List<WriteRequest> unprocessedItems = response.unprocessedItems().(table);
                 if (unprocessedItems != null) {
                     for (final WriteRequest request : unprocessedItems) {
                         final Map<String, AttributeValue> item = request.putRequest().item();

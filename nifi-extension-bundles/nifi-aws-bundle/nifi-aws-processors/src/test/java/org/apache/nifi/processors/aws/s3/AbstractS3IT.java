@@ -16,26 +16,24 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.AWSKMSClient;
-import com.amazonaws.services.kms.model.CreateKeyRequest;
-import com.amazonaws.services.kms.model.CreateKeyResult;
-import com.amazonaws.services.kms.model.GenerateDataKeyRequest;
-import com.amazonaws.services.kms.model.GenerateDataKeyResult;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.DeleteBucketRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.ObjectTagging;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.Tag;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.kms.model.CreateKeyRequest;
+import software.amazon.awssdk.services.kms.model.CreateKeyResponse;
+import software.amazon.awssdk.services.kms.model.GenerateDataKeyRequest;
+import software.amazon.awssdk.services.kms.model.GenerateDataKeyResponse;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
+import software.amazon.awssdk.services.s3.model.ObjectListing;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.ObjectTagging;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
@@ -79,8 +77,8 @@ public abstract class AbstractS3IT {
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
     protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis();
 
-    private static AmazonS3 client;
-    private static AWSKMS kmsClient;
+    private static S3Client client;
+    private static KmsClient kmsClient;
     private final List<String> addedKeys = new ArrayList<>();
 
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:latest");
@@ -92,17 +90,17 @@ public abstract class AbstractS3IT {
     public static void oneTimeSetup() {
         localstack.start();
 
-        client = AmazonS3ClientBuilder.standard()
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(localstack.getEndpoint().toString(), localstack.getRegion()))
-                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+        client = S3Client.builder()
+                .endpointOverride(new AwsClientBuilder.EndpointConfiguration(localstack.getEndpoint().toString(), localstack.getRegion()))
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
                 .build();
 
-        kmsClient = AWSKMSClient.builder()
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(localstack.getEndpoint().toString(), localstack.getRegion()))
-                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(localstack.getAccessKey(), localstack.getSecretKey())))
+        kmsClient = KmsClient.builder()
+                .endpointOverride(new AwsClientBuilder.EndpointConfiguration(localstack.getEndpoint().toString(), localstack.getRegion()))
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(localstack.getAccessKey(), localstack.getSecretKey())))
                 .build();
 
-        final CreateBucketRequest request = new CreateBucketRequest(BUCKET_NAME);
+        final CreateBucketRequest request = CreateBucketRequest.builder().build();
         client.createBucket(request);
         client.deleteBucketEncryption(BUCKET_NAME);
     }
@@ -120,8 +118,8 @@ public abstract class AbstractS3IT {
 
         ObjectListing objectListing = client.listObjects(BUCKET_NAME);
         while (true) {
-            for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
-                client.deleteObject(BUCKET_NAME, objectSummary.getKey());
+            for (S3ObjectSummary objectSummary : objectListing.objectSummaries()) {
+                client.deleteObject(BUCKET_NAME, objectSummary.key());
             }
 
             if (objectListing.isTruncated()) {
@@ -139,18 +137,18 @@ public abstract class AbstractS3IT {
                 return;
             }
 
-            DeleteBucketRequest dbr = new DeleteBucketRequest(BUCKET_NAME);
+            DeleteBucketRequest dbr = DeleteBucketRequest.builder().build();
             client.deleteBucket(dbr);
-        } catch (final AmazonS3Exception e) {
+        } catch (final S3ExceptionClient e) {
             logger.error("Unable to delete bucket {}", BUCKET_NAME, e);
         }
     }
 
-    protected AmazonS3 getClient() {
+    protected S3Client getClient() {
         return client;
     }
 
-    protected AWSKMS getKmsClient() {
+    protected KmsClient getKmsClient() {
         return kmsClient;
     }
 
@@ -166,23 +164,23 @@ public abstract class AbstractS3IT {
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
     }
 
-    protected void putTestFile(String key, File file) throws AmazonS3Exception {
-        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
+    protected void putTestFile(String key, File file) throws S3ExceptionClient {
+        PutObjectRequest putRequest = PutObjectRequest.builder().build();
         client.putObject(putRequest);
     }
 
-    protected void putTestFileEncrypted(String key, File file) throws AmazonS3Exception, FileNotFoundException {
-        ObjectMetadata objectMetadata = new ObjectMetadata();
-        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
+    protected void putTestFileEncrypted(String key, File file) throws S3ExceptionClient, FileNotFoundException {
+        ObjectMetadata objectMetadata = ObjectMetadata.builder().build();
+        objectMetadata.sseAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        PutObjectRequest putRequest = PutObjectRequest.builder().build();
 
         client.putObject(putRequest);
     }
 
-    protected void putFileWithUserMetadata(String key, File file, Map<String, String> userMetadata) throws AmazonS3Exception, FileNotFoundException {
-        ObjectMetadata objectMetadata = new ObjectMetadata();
-        objectMetadata.setUserMetadata(userMetadata);
-        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, new FileInputStream(file), objectMetadata);
+    protected void putFileWithUserMetadata(String key, File file, Map<String, String> userMetadata) throws S3ExceptionClient, FileNotFoundException {
+        ObjectMetadata objectMetadata = ObjectMetadata.builder().build();
+        objectMetadata.userMetadata(userMetadata);
+        PutObjectRequest putRequest = PutObjectRequest.builder().build();
 
         client.putObject(putRequest);
     }
@@ -205,8 +203,8 @@ public abstract class AbstractS3IT {
     }
 
     protected void putFileWithObjectTag(String key, File file, List<Tag> objectTags) {
-        PutObjectRequest putRequest = new PutObjectRequest(BUCKET_NAME, key, file);
-        putRequest.setTagging(new ObjectTagging(objectTags));
+        PutObjectRequest putRequest = PutObjectRequest.builder().build();
+        putRequest.tagging(ObjectTagging.builder().build());
         client.putObject(putRequest);
     }
 
@@ -234,13 +232,13 @@ public abstract class AbstractS3IT {
     }
 
     protected static String getKMSKey() {
-        CreateKeyRequest cmkRequest = new CreateKeyRequest().withDescription("CMK for unit tests");
-        CreateKeyResult cmkResult = kmsClient.createKey(cmkRequest);
+        CreateKeyRequest cmkRequest = CreateKeyRequest.builder().description("CMK for unit tests").build();
+        CreateKeyResponse cmkResult = kmsClient.createKey(cmkRequest);
 
-        GenerateDataKeyRequest dekRequest = new GenerateDataKeyRequest().withKeyId(cmkResult.getKeyMetadata().getKeyId()).withKeySpec("AES_128");
-        GenerateDataKeyResult dekResult = kmsClient.generateDataKey(dekRequest);
+        GenerateDataKeyRequest dekRequest = GenerateDataKeyRequest.builder().keyId(cmkResult.keyMetadata().keyId()).keySpec("AES_128").build();
+        GenerateDataKeyResponse dekResult = kmsClient.generateDataKey(dekRequest);
 
-        return dekResult.getKeyId();
+        return dekResult.keyId();
     }
 
 

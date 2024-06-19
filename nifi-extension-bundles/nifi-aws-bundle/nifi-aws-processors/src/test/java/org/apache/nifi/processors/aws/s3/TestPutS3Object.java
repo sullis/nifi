@@ -16,25 +16,25 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.Signer;
 import com.amazonaws.auth.SignerFactory;
 import com.amazonaws.auth.SignerParams;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 import com.amazonaws.services.s3.internal.AWSS3V4Signer;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.StorageClass;
+import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
+import software.amazon.awssdk.services.s3.model.MultipartUploadListing;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.fileresource.service.api.FileResource;
@@ -78,14 +78,14 @@ public class TestPutS3Object {
 
     private TestRunner runner;
     private PutS3Object putS3Object;
-    private AmazonS3Client mockS3Client;
+    private S3Client mockS3Client;
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = mock(AmazonS3Client.class);
+        mockS3Client = mock(S3Client.class);
         putS3Object = new PutS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+            protected S3Client createClient(final ProcessContext context, final AwsCredentialsProvider credentialsProvider, final Region region, final ClientOverrideConfiguration config,
                                                   final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
@@ -118,8 +118,8 @@ public class TestPutS3Object {
         ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client).putObject(captureRequest.capture());
         PutObjectRequest putObjectRequest = captureRequest.getValue();
-        assertEquals(localFileInputStream, putObjectRequest.getInputStream());
-        assertEquals(putObjectRequest.getMetadata().getContentLength(), contentLength);
+        assertEquals(localFileInputStream, putObjectRequest.inputStream());
+        assertEquals(putObjectRequest.metadata().contentLength(), contentLength);
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
     }
@@ -134,7 +134,7 @@ public class TestPutS3Object {
         ArgumentCaptor<PutObjectRequest> captureRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
         PutObjectRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
 
@@ -151,7 +151,7 @@ public class TestPutS3Object {
     public void testPutSinglePartException() {
         prepareTest();
 
-        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenThrow(new AmazonS3Exception("TestFail"));
+        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenThrow(S3ExceptionClient.builder().build());
 
         runner.run(1);
 
@@ -160,8 +160,8 @@ public class TestPutS3Object {
 
     @Test
     public void testSignerOverrideOptions() {
-        final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
-        final ClientConfiguration config = new ClientConfiguration();
+        final AwsCredentialsProvider credentialsProvider = DefaultCredentialsProvider.builder().build();
+        final ClientOverrideConfiguration config = ClientOverrideConfiguration.builder().build();
         final PutS3Object processor = new PutS3Object();
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
@@ -174,7 +174,7 @@ public class TestPutS3Object {
                 runner.setProperty(PutS3Object.SIGNER_OVERRIDE, signerType);
                 ProcessContext context = runner.getProcessContext();
                 assertDoesNotThrow(() -> processor.createClient(context, credentialsProvider,
-                        Region.getRegion(Regions.DEFAULT_REGION), config, null));
+                        Region.getRegion(Region.DEFAULT_REGION), config, null));
             }
         }
     }
@@ -191,11 +191,11 @@ public class TestPutS3Object {
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
         PutObjectRequest request = captureRequest.getValue();
 
-        List<Tag> tagSet = request.getTagging().getTagSet();
+        List<Tag> tagSet = request.tagging().tagSet();
 
         assertEquals(1, tagSet.size());
-        assertEquals("tagS3PII", tagSet.get(0).getKey());
-        assertEquals("true", tagSet.get(0).getValue());
+        assertEquals("tagS3PII", tagSet.get(0).key());
+        assertEquals("true", tagSet.get(0).value());
     }
 
     @Test
@@ -210,7 +210,7 @@ public class TestPutS3Object {
             verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
             PutObjectRequest request = captureRequest.getValue();
 
-            assertEquals(storageClass.toString(), request.getStorageClass());
+            assertEquals(storageClass.toString(), request.storageClass());
 
             Mockito.reset(mockS3Client);
         }
@@ -226,8 +226,8 @@ public class TestPutS3Object {
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
         PutObjectRequest request = captureRequest.getValue();
 
-        ObjectMetadata objectMetadata = request.getMetadata();
-        assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", UTF_8), objectMetadata.getContentDisposition());
+        ObjectMetadata objectMetadata = request.metadata();
+        assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", UTF_8), objectMetadata.contentDisposition());
     }
 
     @Test
@@ -273,15 +273,15 @@ public class TestPutS3Object {
     }
 
     private void initMocks() {
-        PutObjectResult putObjectResult = new PutObjectResult();
-        putObjectResult.setExpirationTime(new Date());
-        putObjectResult.setMetadata(new ObjectMetadata());
-        putObjectResult.setVersionId("test-version");
-        putObjectResult.setETag("test-etag");
+        PutObjectResponse putObjectResult = PutObjectResponse.builder().build();
+        putObjectResult.expirationTime(new Date());
+        putObjectResult.metadata(ObjectMetadata.builder().build());
+        putObjectResult.versionId("test-version");
+        putObjectResult.eTag("test-etag");
 
         when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
 
-        MultipartUploadListing uploadListing = new MultipartUploadListing();
+        MultipartUploadListing uploadListing = MultipartUploadListing.builder().build();
         when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
     }
 
@@ -319,8 +319,8 @@ public class TestPutS3Object {
 
     @Test
     public void testCustomSigner() {
-        final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
-        final ClientConfiguration config = new ClientConfiguration();
+        final AwsCredentialsProvider credentialsProvider = DefaultCredentialsProvider.builder().build();
+        final ClientOverrideConfiguration config = ClientOverrideConfiguration.builder().build();
         final PutS3Object processor = new PutS3Object();
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
@@ -328,7 +328,7 @@ public class TestPutS3Object {
         runner.setProperty(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME, CustomS3Signer.class.getName());
 
         ProcessContext context = runner.getProcessContext();
-        processor.createClient(context, credentialsProvider, Region.getRegion(Regions.DEFAULT_REGION), config, null);
+        processor.createClient(context, credentialsProvider, Region.getRegion(Region.DEFAULT_REGION), config, null);
 
         final String signerName = config.getSignerOverride();
         assertNotNull(signerName);

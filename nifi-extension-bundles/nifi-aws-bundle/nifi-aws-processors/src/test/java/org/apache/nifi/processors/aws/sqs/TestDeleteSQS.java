@@ -74,7 +74,7 @@ public class TestDeleteSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.queueUrl());
-        assertEquals("test-receipt-handle-1", deleteRequest.entries().get(0).receiptHandle());
+        assertEquals("test-receipt-handle-1", deleteRequest.entries().(0).receiptHandle());
 
         runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
     }
@@ -94,7 +94,7 @@ public class TestDeleteSQS {
         ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
-        assertEquals("test-receipt-handle-1", deleteRequest.entries().get(0).receiptHandle());
+        assertEquals("test-receipt-handle-1", deleteRequest.entries().(0).receiptHandle());
 
         runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
     }

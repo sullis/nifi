@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -109,7 +109,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
             .required(false)
             .allowableValues(RegionUtilV1.getAvailableRegions())
-            .defaultValue(RegionUtilV1.createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .defaultValue(RegionUtilV1.createAllowableValue(Region.DEFAULT_REGION).getValue())
             .build();
 
     private String keyValue = "";
@@ -219,7 +219,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder) {
+    public S3Client createEncryptionClient(final Consumer<S3Builder<?, ?>> clientBuilder) {
         return encryptionStrategy.createEncryptionClient(clientBuilder, kmsRegion, keyValue);
     }
 

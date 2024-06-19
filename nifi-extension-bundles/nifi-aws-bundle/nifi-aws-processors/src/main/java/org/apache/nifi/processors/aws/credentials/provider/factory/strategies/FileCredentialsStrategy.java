@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
@@ -47,7 +46,7 @@ public class FileCredentialsStrategy extends AbstractCredentialsStrategy {
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
+    public AwsCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
         final String credentialsFile = propertyContext.getProperty(AWSCredentialsProviderControllerService.CREDENTIALS_FILE).getValue();
         return new PropertiesFileCredentialsProvider(credentialsFile);
     }

@@ -3,11 +3,9 @@ package org.apache.nifi.processors.aws.wag.client;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.AmazonWebServiceResponse;
-import com.amazonaws.ClientConfiguration;
 import com.amazonaws.DefaultRequest;
 import com.amazonaws.Response;
 import com.amazonaws.auth.AWS4Signer;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.http.AmazonHttpClient;
 import com.amazonaws.http.ExecutionContext;
 import com.amazonaws.http.HttpMethodName;
@@ -22,6 +20,8 @@ import com.amazonaws.transform.JsonErrorUnmarshaller;
 import com.amazonaws.transform.JsonUnmarshallerContext;
 import com.amazonaws.transform.Unmarshaller;
 import com.fasterxml.jackson.databind.JsonNode;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -35,14 +35,14 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
 
     private final JsonResponseHandler<GenericApiGatewayResponse> responseHandler;
     private final HttpResponseHandler<AmazonServiceException> errorResponseHandler;
-    private final AWSCredentialsProvider credentials;
+    private final AwsCredentialsProvider credentials;
     private final String apiKey;
     private final AWS4Signer signer;
     private final URI endpoint;
     private final String region;
 
-    GenericApiGatewayClient(ClientConfiguration clientConfiguration, String endpoint, Region region,
-                            AWSCredentialsProvider credentials, String apiKey, AmazonHttpClient httpClient) {
+    GenericApiGatewayClient(ClientOverrideConfiguration clientConfiguration, String endpoint, Region region,
+                            AwsCredentialsProvider credentials, String apiKey, AmazonHttpClient httpClient) {
         super(clientConfiguration);
         this.endpoint = URI.create(endpoint);
         this.region = region.getName();

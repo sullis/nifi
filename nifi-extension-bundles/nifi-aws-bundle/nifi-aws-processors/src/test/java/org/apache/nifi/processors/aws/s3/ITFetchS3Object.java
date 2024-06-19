@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 
 import java.io.IOException;
 import java.nio.file.Files;

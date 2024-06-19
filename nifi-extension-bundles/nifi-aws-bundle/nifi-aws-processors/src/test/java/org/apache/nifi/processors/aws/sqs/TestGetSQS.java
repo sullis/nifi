@@ -151,8 +151,8 @@ public class TestGetSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.queueUrl());
-        assertEquals("test-message-id-1", deleteRequest.entries().get(0).id());
-        assertEquals("test-message-id-2", deleteRequest.entries().get(1).id());
+        assertEquals("test-message-id-1", deleteRequest.entries().(0).id());
+        assertEquals("test-message-id-2", deleteRequest.entries().(1).id());
 
         runner.assertAllFlowFilesTransferred(GetSQS.REL_SUCCESS, 2);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);

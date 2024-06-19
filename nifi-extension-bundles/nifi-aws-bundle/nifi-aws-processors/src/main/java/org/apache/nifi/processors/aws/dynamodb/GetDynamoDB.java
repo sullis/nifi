@@ -166,7 +166,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                             .build());
                 } else {
                     // Handle processed items and get the json document
-                    final List<Map<String, AttributeValue>> items = response.responses().get(table);
+                    final List<Map<String, AttributeValue>> items = response.responses().(table);
                     if (items != null) {
                         for (final Map<String, AttributeValue> item : items) {
                             totalCount++;
@@ -230,7 +230,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
 
             if (CollectionUtils.isNotEmpty(response.responses())) {
                 // Handle processed items and get the json document
-                final List<Map<String, AttributeValue>> items = response.responses().get(table);
+                final List<Map<String, AttributeValue>> items = response.responses().(table);
                 for (final Map<String, AttributeValue> item : items) {
                     final ItemKeys itemKeys = new ItemKeys(item.get(hashKeyName), item.get(rangeKeyName));
                     FlowFile flowFile = keysToFlowFileMap.get(itemKeys);
@@ -238,7 +238,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                     if (item.get(jsonDocument) != null && item.get(jsonDocument).s() != null) {
                         final String charsetPropertyValue = context.getProperty(DOCUMENT_CHARSET).getValue();
                         final String charset = charsetPropertyValue == null ? Charset.defaultCharset().name() : charsetPropertyValue;
-                        final ByteArrayInputStream bais = new ByteArrayInputStream(item.get(jsonDocument).s().getBytes(charset));
+                        final ByteArrayInputStream bais = new ByteArrayInputStream(item.get(jsonDocument).s().bytes(charset));
                         flowFile = session.importFrom(bais, flowFile);
                     }
 

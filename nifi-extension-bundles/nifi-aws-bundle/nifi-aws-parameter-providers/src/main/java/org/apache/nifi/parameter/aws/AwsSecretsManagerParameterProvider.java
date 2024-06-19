@@ -16,20 +16,19 @@
  */
 package org.apache.nifi.parameter.aws;
 
-import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.AWSSecretsManagerClientBuilder;
-import com.amazonaws.services.secretsmanager.model.AWSSecretsManagerException;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ListSecretsRequest;
-import com.amazonaws.services.secretsmanager.model.ListSecretsResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
-import com.amazonaws.services.secretsmanager.model.SecretListEntry;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerExceptionClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
+import software.amazon.awssdk.services.secretsmanager.model.ListSecretsResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -97,7 +96,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .displayName("Region")
             .required(true)
             .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .defaultValue(createAllowableValue(Region.DEFAULT_REGION).getValue())
             .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
@@ -135,21 +134,21 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     @Override
     public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
-        AWSSecretsManager secretsManager = this.configureClient(context);
+        SecretsManagerClient secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
-        ListSecretsRequest listSecretsRequest = new ListSecretsRequest();
-        ListSecretsResult listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
-        while (!listSecretsResult.getSecretList().isEmpty()) {
-            for (final SecretListEntry entry : listSecretsResult.getSecretList()) {
-                groups.addAll(fetchSecret(secretsManager, context, entry.getName()));
+        ListSecretsRequest listSecretsRequest = ListSecretsRequest.builder().build();
+        ListSecretsResponse listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+        while (!listSecretsResult.secretList().isEmpty()) {
+            for (final SecretListEntry entry : listSecretsResult.secretList()) {
+                groups.addAll(fetchSecret(secretsManager, context, entry.name()));
             }
-            final String nextToken = listSecretsResult.getNextToken();
+            final String nextToken = listSecretsResult.nextToken();
             if (nextToken == null) {
                 break;
             }
 
-            listSecretsRequest.setNextToken(nextToken);
+            listSecretsRequest.nextToken(nextToken);
             listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
         }
 
@@ -183,7 +182,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         return results;
     }
 
-    private List<ParameterGroup> fetchSecret(final AWSSecretsManager secretsManager, final ConfigurationContext context, final String secretName) {
+    private List<ParameterGroup> fetchSecret(final SecretsManagerClient secretsManager, final ConfigurationContext context, final String secretName) {
         final List<ParameterGroup> groups = new ArrayList<>();
         final Pattern secretNamePattern = Pattern.compile(context.getProperty(SECRET_NAME_PATTERN).getValue());
 
@@ -194,16 +193,16 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             return groups;
         }
 
-        final GetSecretValueRequest getSecretValueRequest = new GetSecretValueRequest().withSecretId(secretName);
+        final GetSecretValueRequest getSecretValueRequest = GetSecretValueRequest.builder().secretId(secretName).build();
         try {
-            final GetSecretValueResult getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
+            final GetSecretValueResponse getSecretValueResult = secretsManager.getSecretValue(getSecretValueRequest);
 
-            if (getSecretValueResult.getSecretString() == null) {
+            if (getSecretValueResult.secretString() == null) {
                 getLogger().debug("Secret [{}] is not configured", secretName);
                 return groups;
             }
 
-            final ObjectNode secretObject = parseSecret(getSecretValueResult.getSecretString());
+            final ObjectNode secretObject = parseSecret(getSecretValueResult.secretString());
             if (secretObject == null) {
                 getLogger().debug("Secret [{}] is not in the expected JSON key/value format", secretName);
                 return groups;
@@ -226,7 +225,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             return groups;
         } catch (final ResourceNotFoundException e) {
             throw new IllegalStateException(String.format("Secret %s not found", secretName), e);
-        } catch (final AWSSecretsManagerException e) {
+        } catch (final SecretsManagerExceptionClient e) {
             throw new IllegalStateException("Error retrieving secret " + secretName, e);
         }
     }
@@ -236,20 +235,20 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         return new Parameter(parameterDescriptor, parameterValue, null, true);
     }
 
-    protected ClientConfiguration createConfiguration(final ConfigurationContext context) {
-        final ClientConfiguration config = new ClientConfiguration();
-        config.setMaxErrorRetry(0);
-        config.setUserAgentPrefix(DEFAULT_USER_AGENT);
-        config.setProtocol(DEFAULT_PROTOCOL);
+    protected ClientOverrideConfiguration createConfiguration(final ConfigurationContext context) {
+        final ClientOverrideConfiguration config = ClientOverrideConfiguration.builder().build();
+        config.maxErrorRetry(0);
+        config/*AWS SDK for Java v2 migration: userAgentPrefix override is a request-level config in v2. See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/core/RequestOverrideConfiguration.Builder.html#addApiName(software.amazon.awssdk.core.ApiName).*/.userAgentPrefix(DEFAULT_USER_AGENT);
+        config.protocol(DEFAULT_PROTOCOL);
         final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        config.setConnectionTimeout(commsTimeout);
-        config.setSocketTimeout(commsTimeout);
+        config.connectionTimeout(commsTimeout);
+        config.socketTimeout(commsTimeout);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final SSLContext sslContext = sslContextService.createContext();
             SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+            config.getApacheHttpClientConfig().sslSocketFactory(sdkTLSSocketFactory);
         }
 
         return config;
@@ -268,11 +267,11 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         }
     }
 
-    AWSSecretsManager configureClient(final ConfigurationContext context) {
-        return AWSSecretsManagerClientBuilder.standard()
-                .withRegion(context.getProperty(REGION).getValue())
-                .withClientConfiguration(createConfiguration(context))
-                .withCredentials(getCredentialsProvider(context))
+    SecretsManagerClient configureClient(final ConfigurationContext context) {
+        return SecretsManagerClient.builder()
+                .region(context.getProperty(REGION).getValue())
+                .overrideConfiguration(createConfiguration(context))
+                .credentialsProvider(getCredentialsProvider(context))
                 .build();
     }
 
@@ -282,7 +281,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
      * @return AWSCredentialsProvider the credential provider
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
-    protected AWSCredentialsProvider getCredentialsProvider(final ConfigurationContext context) {
+    protected AwsCredentialsProvider getCredentialsProvider(final ConfigurationContext context) {
 
         final AWSCredentialsProviderService awsCredentialsProviderService =
                 context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
@@ -291,13 +290,13 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     }
 
-    private static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    private static AllowableValue createAllowableValue(final Region region) {
+        return new AllowableValue(region.id(), region.getDescription(), "AWS Region Code : " + region.id());
     }
 
     private static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
-        for (final Regions region : Regions.values()) {
+        for (final Region region : Region.values()) {
             values.add(createAllowableValue(region));
         }
         return values.toArray(new AllowableValue[0]);

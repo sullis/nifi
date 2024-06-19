@@ -80,7 +80,7 @@ public class TestPutSNS {
         assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1", request.topicArn());
         assertEquals("Test Message Content", request.message());
         assertEquals("test-subject", request.subject());
-        assertEquals("hello!", request.messageAttributes().get("DynamicProperty").stringValue());
+        assertEquals("hello!", request.messageAttributes().("DynamicProperty").stringValue());
 
         runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSNS.REL_SUCCESS);
@@ -115,7 +115,7 @@ public class TestPutSNS {
         assertEquals("test-subject", request.subject());
         assertEquals("test1234", request.messageGroupId());
         assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.messageDeduplicationId());
-        assertEquals("hello!", request.messageAttributes().get("DynamicProperty").stringValue());
+        assertEquals("hello!", request.messageAttributes().("DynamicProperty").stringValue());
 
         runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSNS.REL_SUCCESS);

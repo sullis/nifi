@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import org.apache.nifi.controller.ControllerService;
 
 import java.util.function.Consumer;
@@ -72,7 +72,7 @@ public interface AmazonS3EncryptionService extends ControllerService {
      *
      * @param clientBuilder a Consumer that is responsible for configuring the client builder
      */
-    AmazonS3 createEncryptionClient(Consumer<AmazonS3Builder<?, ?>> clientBuilder);
+    S3Client createEncryptionClient(Consumer<S3Builder<?, ?>> clientBuilder);
 
     /**
      * @return The KMS region associated with the service, as a String.

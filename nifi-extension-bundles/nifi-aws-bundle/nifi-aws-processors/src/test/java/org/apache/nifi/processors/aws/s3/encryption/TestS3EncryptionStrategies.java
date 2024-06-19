@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.aws.s3.encryption;
-
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import org.apache.commons.codec.binary.Base64;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestS3EncryptionStrategies {
 
-    private static final String REGION = Regions.DEFAULT_REGION.getName();
+    private static final String REGION = Region.DEFAULT_REGION.id();
     private static final String KEY_ID = "key-id";
 
     private String randomKeyMaterial = "";
@@ -53,11 +52,11 @@ public class TestS3EncryptionStrategies {
         secureRandom.nextBytes(keyRawBytes);
         randomKeyMaterial = Base64.encodeBase64String(keyRawBytes);
 
-        metadata = new ObjectMetadata();
-        putObjectRequest = new PutObjectRequest("", "", "");
-        initUploadRequest = new InitiateMultipartUploadRequest("", "");
-        getObjectRequest = new GetObjectRequest("", "");
-        uploadPartRequest = new UploadPartRequest();
+        metadata = ObjectMetadata.builder().build();
+        putObjectRequest = PutObjectRequest.builder().build();
+        initUploadRequest = InitiateMultipartUploadRequest.builder().build();
+        getObjectRequest = GetObjectRequest.builder().bucket("").key("").build();
+        uploadPartRequest = UploadPartRequest.builder().build();
     }
 
     @Test
@@ -70,16 +69,16 @@ public class TestS3EncryptionStrategies {
         }, null, randomKeyMaterial));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        assertNull(metadata.sseAlgorithm());
+        assertNull(putObjectRequest.sseAwsKeyManagementParams());
+        assertNull(putObjectRequest.sseCustomerKey());
 
-        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
-        assertNull(initUploadRequest.getSSECustomerKey());
+        assertNull(initUploadRequest.sseAwsKeyManagementParams());
+        assertNull(initUploadRequest.sseCustomerKey());
 
-        assertNull(getObjectRequest.getSSECustomerKey());
+        assertNull(getObjectRequest.sseCustomerKey());
 
-        assertNull(uploadPartRequest.getSSECustomerKey());
+        assertNull(uploadPartRequest.sseCustomerKey());
     }
 
     @Test
@@ -92,16 +91,16 @@ public class TestS3EncryptionStrategies {
         }, REGION, KEY_ID));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        assertNull(metadata.sseAlgorithm());
+        assertNull(putObjectRequest.sseAwsKeyManagementParams());
+        assertNull(putObjectRequest.sseCustomerKey());
 
-        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
-        assertNull(initUploadRequest.getSSECustomerKey());
+        assertNull(initUploadRequest.sseAwsKeyManagementParams());
+        assertNull(initUploadRequest.sseCustomerKey());
 
-        assertNull(getObjectRequest.getSSECustomerKey());
+        assertNull(getObjectRequest.sseCustomerKey());
 
-        assertNull(uploadPartRequest.getSSECustomerKey());
+        assertNull(uploadPartRequest.sseCustomerKey());
     }
 
     @Test
@@ -113,25 +112,25 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy sets the SSE customer key as expected:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, putObjectRequest.getSSECustomerKey().getKey());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(metadata.getSSEAlgorithm());
+        assertEquals(randomKeyMaterial, putObjectRequest.sseCustomerKey().key());
+        assertNull(putObjectRequest.sseAwsKeyManagementParams());
+        assertNull(metadata.sseAlgorithm());
 
         // Same for InitiateMultipartUploadRequest:
         strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, initUploadRequest.getSSECustomerKey().getKey());
-        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
-        assertNull(metadata.getSSEAlgorithm());
+        assertEquals(randomKeyMaterial, initUploadRequest.sseCustomerKey().key());
+        assertNull(initUploadRequest.sseAwsKeyManagementParams());
+        assertNull(metadata.sseAlgorithm());
 
         // Same for GetObjectRequest:
         strategy.configureGetObjectRequest(getObjectRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, initUploadRequest.getSSECustomerKey().getKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertEquals(randomKeyMaterial, initUploadRequest.sseCustomerKey().key());
+        assertNull(metadata.sseAlgorithm());
 
         // Same for UploadPartRequest:
         strategy.configureUploadPartRequest(uploadPartRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, uploadPartRequest.getSSECustomerKey().getKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertEquals(randomKeyMaterial, uploadPartRequest.sseCustomerKey().key());
+        assertNull(metadata.sseAlgorithm());
     }
 
     @Test
@@ -143,15 +142,15 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy sets the SSE KMS key id as expected:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, KEY_ID);
-        assertEquals(KEY_ID, putObjectRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
-        assertNull(putObjectRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertEquals(KEY_ID, putObjectRequest.sseAwsKeyManagementParams().awsKmsKeyId());
+        assertNull(putObjectRequest.sseCustomerKey());
+        assertNull(metadata.sseAlgorithm());
 
         // Same for InitiateMultipartUploadRequest:
         strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, KEY_ID);
-        assertEquals(KEY_ID, initUploadRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
-        assertNull(initUploadRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        assertEquals(KEY_ID, initUploadRequest.sseAwsKeyManagementParams().awsKmsKeyId());
+        assertNull(initUploadRequest.sseCustomerKey());
+        assertNull(metadata.sseAlgorithm());
     }
 
     @Test
@@ -163,11 +162,11 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy sets the SSE algorithm field as expected:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, null);
-        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
+        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.sseAlgorithm());
 
         // Same for InitiateMultipartUploadRequest:
         strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, null);
-        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
+        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.sseAlgorithm());
     }
 
     @Test
@@ -178,16 +177,16 @@ public class TestS3EncryptionStrategies {
         assertNull(strategy.createEncryptionClient(null, "", ""));
 
         // This shows the request and metadata start with various null objects:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        assertNull(metadata.sseAlgorithm());
+        assertNull(putObjectRequest.sseAwsKeyManagementParams());
+        assertNull(putObjectRequest.sseCustomerKey());
 
         // Act:
         strategy.configurePutObjectRequest(putObjectRequest, metadata, "");
 
         // This shows that the request and metadata were not changed:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        assertNull(metadata.sseAlgorithm());
+        assertNull(putObjectRequest.sseAwsKeyManagementParams());
+        assertNull(putObjectRequest.sseCustomerKey());
     }
 }

@@ -16,22 +16,22 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.S3VersionSummary;
-import com.amazonaws.services.s3.model.VersionListing;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectMetadataRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.ListVersionsRequest;
+import software.amazon.awssdk.services.s3.model.ObjectListing;
+import software.amazon.awssdk.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.services.s3.model.S3VersionSummary;
+import software.amazon.awssdk.services.s3.model.VersionListing;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -80,16 +80,16 @@ public class TestListS3 {
 
     private TestRunner runner;
     private ListS3 listS3;
-    private AmazonS3Client mockS3Client;
+    private S3Client mockS3Client;
     private MockStateManager mockStateManager;
     private DistributedMapCacheClient mockCache;
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = mock(AmazonS3Client.class);
+        mockS3Client = mock(S3Client.class);
         listS3 = new ListS3() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+            protected S3Client createClient(final ProcessContext context, final AwsCredentialsProvider credentialsProvider, final Region region, final ClientOverrideConfiguration config,
                                                   final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
@@ -107,22 +107,22 @@ public class TestListS3 {
         runner.setProperty(ListS3.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
 
         Date lastModified = new Date();
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("b/c");
-        objectSummary2.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("d/e");
-        objectSummary3.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("b/c");
+        objectSummary2.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("d/e");
+        objectSummary3.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         runner.run();
@@ -130,7 +130,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         assertFalse(request.isRequesterPays());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
@@ -164,22 +164,22 @@ public class TestListS3 {
         runner.setProperty(ListS3.RECORD_WRITER, "record-writer");
 
         Date lastModified = new Date();
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("b/c");
-        objectSummary2.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("d/e");
-        objectSummary3.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("b/c");
+        objectSummary2.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("d/e");
+        objectSummary3.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         runner.run();
@@ -187,7 +187,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         assertFalse(request.isRequesterPays());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
@@ -211,22 +211,22 @@ public class TestListS3 {
         runner.setProperty(ListS3.REQUESTER_PAYS, "true");
 
         Date lastModified = new Date();
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("b/c");
-        objectSummary2.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("d/e");
-        objectSummary3.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("b/c");
+        objectSummary2.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("d/e");
+        objectSummary3.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         runner.run();
@@ -234,7 +234,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         assertTrue(request.isRequesterPays());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
@@ -267,22 +267,22 @@ public class TestListS3 {
         runner.setProperty(ListS3.LIST_TYPE, "2");
 
         Date lastModified = new Date();
-        ListObjectsV2Result objectListing = new ListObjectsV2Result();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("b/c");
-        objectSummary2.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("d/e");
-        objectSummary3.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ListObjectsV2Response objectListing = ListObjectsV2Response.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("b/c");
+        objectSummary2.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("d/e");
+        objectSummary3.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(objectListing);
 
         runner.run();
@@ -290,7 +290,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsV2Request> captureRequest = ArgumentCaptor.forClass(ListObjectsV2Request.class);
         verify(mockS3Client, Mockito.times(1)).listObjectsV2(captureRequest.capture());
         ListObjectsV2Request request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         assertFalse(request.isRequesterPays());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
@@ -314,22 +314,22 @@ public class TestListS3 {
         runner.setProperty(ListS3.LIST_TYPE, "2");
 
         Date lastModified = new Date();
-        ListObjectsV2Result objectListing = new ListObjectsV2Result();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("b/c");
-        objectSummary2.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("d/e");
-        objectSummary3.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ListObjectsV2Response objectListing = ListObjectsV2Response.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("b/c");
+        objectSummary2.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("d/e");
+        objectSummary3.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjectsV2(any(ListObjectsV2Request.class))).thenReturn(objectListing);
 
         runner.run();
@@ -337,7 +337,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsV2Request> captureRequest = ArgumentCaptor.forClass(ListObjectsV2Request.class);
         verify(mockS3Client, Mockito.times(1)).listObjectsV2(captureRequest.capture());
         ListObjectsV2Request request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         assertTrue(request.isRequesterPays());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
@@ -360,19 +360,19 @@ public class TestListS3 {
         runner.setProperty(ListS3.USE_VERSIONS, "true");
 
         Date lastModified = new Date();
-        VersionListing versionListing = new VersionListing();
-        S3VersionSummary versionSummary1 = new S3VersionSummary();
-        versionSummary1.setBucketName("test-bucket");
-        versionSummary1.setKey("test-key");
-        versionSummary1.setVersionId("1");
-        versionSummary1.setLastModified(lastModified);
-        versionListing.getVersionSummaries().add(versionSummary1);
-        S3VersionSummary versionSummary2 = new S3VersionSummary();
-        versionSummary2.setBucketName("test-bucket");
-        versionSummary2.setKey("test-key");
-        versionSummary2.setVersionId("2");
-        versionSummary2.setLastModified(lastModified);
-        versionListing.getVersionSummaries().add(versionSummary2);
+        VersionListing versionListing = VersionListing.builder().build();
+        S3VersionSummary versionSummary1 = S3VersionSummary.builder().build();
+        versionSummary1.bucketName("test-bucket");
+        versionSummary1.key("test-key");
+        versionSummary1.versionId("1");
+        versionSummary1.lastModified(lastModified);
+        versionListing.versionSummaries().add(versionSummary1);
+        S3VersionSummary versionSummary2 = S3VersionSummary.builder().build();
+        versionSummary2.bucketName("test-bucket");
+        versionSummary2.key("test-key");
+        versionSummary2.versionId("2");
+        versionSummary2.lastModified(lastModified);
+        versionListing.versionSummaries().add(versionSummary2);
         when(mockS3Client.listVersions(any(ListVersionsRequest.class))).thenReturn(versionListing);
 
         runner.run();
@@ -380,7 +380,7 @@ public class TestListS3 {
         ArgumentCaptor<ListVersionsRequest> captureRequest = ArgumentCaptor.forClass(ListVersionsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listVersions(captureRequest.capture());
         ListVersionsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         verify(mockS3Client, Mockito.never()).listObjects(any(ListObjectsRequest.class));
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 2);
@@ -413,12 +413,12 @@ public class TestListS3 {
         MockStateManager mockStateManager = runner.getStateManager();
         mockStateManager.setState(state, Scope.CLUSTER);
 
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("test-key");
-        objectSummary1.setLastModified(objectLastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("test-key");
+        objectSummary1.lastModified(objectLastModified);
+        objectListing.objectSummaries().add(objectSummary1);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         runner.run();
@@ -426,7 +426,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 0);
@@ -442,22 +442,22 @@ public class TestListS3 {
         Date lastModifiedNow = new Date();
         Date lastModifiedMinus1Hour = DateUtils.addHours(lastModifiedNow, -1);
         Date lastModifiedMinus3Hour = DateUtils.addHours(lastModifiedNow, -3);
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("minus-3hour");
-        objectSummary1.setLastModified(lastModifiedMinus3Hour);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("minus-1hour");
-        objectSummary2.setLastModified(lastModifiedMinus1Hour);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("now");
-        objectSummary3.setLastModified(lastModifiedNow);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("minus-3hour");
+        objectSummary1.lastModified(lastModifiedMinus3Hour);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("minus-1hour");
+        objectSummary2.lastModified(lastModifiedMinus1Hour);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("now");
+        objectSummary3.lastModified(lastModifiedNow);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         Map<String, String> stateMap = new HashMap<>();
@@ -471,7 +471,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
@@ -492,22 +492,22 @@ public class TestListS3 {
         Date lastModifiedNow = new Date();
         Date lastModifiedMinus1Hour = DateUtils.addHours(lastModifiedNow, -1);
         Date lastModifiedMinus3Hour = DateUtils.addHours(lastModifiedNow, -3);
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("minus-3hour");
-        objectSummary1.setLastModified(lastModifiedMinus3Hour);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("minus-1hour");
-        objectSummary2.setLastModified(lastModifiedMinus1Hour);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("now");
-        objectSummary3.setLastModified(lastModifiedNow);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("minus-3hour");
+        objectSummary1.lastModified(lastModifiedMinus3Hour);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("minus-1hour");
+        objectSummary2.lastModified(lastModifiedMinus1Hour);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("now");
+        objectSummary3.lastModified(lastModifiedNow);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         Map<String, String> stateMap = new HashMap<>();
@@ -519,7 +519,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
         runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
@@ -539,12 +539,12 @@ public class TestListS3 {
         runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
 
         Date lastModified = new Date();
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
 
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
@@ -554,8 +554,8 @@ public class TestListS3 {
         verify(mockS3Client, Mockito.times(1)).getObjectTagging(captureRequest.capture());
         GetObjectTaggingRequest request = captureRequest.getValue();
 
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("a", request.getKey());
+        assertEquals("test-bucket", request.bucketName());
+        assertEquals("a", request.key());
         verify(mockS3Client, Mockito.never()).listVersions(any());
     }
 
@@ -566,12 +566,12 @@ public class TestListS3 {
         runner.setProperty(ListS3.WRITE_USER_METADATA, "true");
 
         Date lastModified = new Date();
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
 
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
@@ -581,8 +581,8 @@ public class TestListS3 {
         verify(mockS3Client, Mockito.times(1)).getObjectMetadata(captureRequest.capture());
         GetObjectMetadataRequest request = captureRequest.getValue();
 
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("a", request.getKey());
+        assertEquals("test-bucket", request.bucketName());
+        assertEquals("a", request.key());
 
         verify(mockS3Client, Mockito.never()).listVersions(any());
     }
@@ -594,22 +594,22 @@ public class TestListS3 {
         runner.setProperty(ListS3.LISTING_STRATEGY, ListS3.NO_TRACKING);
 
         Date lastModified = new Date();
-        ObjectListing objectListing = new ObjectListing();
-        S3ObjectSummary objectSummary1 = new S3ObjectSummary();
-        objectSummary1.setBucketName("test-bucket");
-        objectSummary1.setKey("a");
-        objectSummary1.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary1);
-        S3ObjectSummary objectSummary2 = new S3ObjectSummary();
-        objectSummary2.setBucketName("test-bucket");
-        objectSummary2.setKey("b/c");
-        objectSummary2.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary2);
-        S3ObjectSummary objectSummary3 = new S3ObjectSummary();
-        objectSummary3.setBucketName("test-bucket");
-        objectSummary3.setKey("d/e");
-        objectSummary3.setLastModified(lastModified);
-        objectListing.getObjectSummaries().add(objectSummary3);
+        ObjectListing objectListing = ObjectListing.builder().build();
+        S3ObjectSummary objectSummary1 = S3ObjectSummary.builder().build();
+        objectSummary1.bucketName("test-bucket");
+        objectSummary1.key("a");
+        objectSummary1.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary1);
+        S3ObjectSummary objectSummary2 = S3ObjectSummary.builder().build();
+        objectSummary2.bucketName("test-bucket");
+        objectSummary2.key("b/c");
+        objectSummary2.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary2);
+        S3ObjectSummary objectSummary3 = S3ObjectSummary.builder().build();
+        objectSummary3.bucketName("test-bucket");
+        objectSummary3.key("d/e");
+        objectSummary3.lastModified(lastModified);
+        objectListing.objectSummaries().add(objectSummary3);
         when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(objectListing);
 
         runner.run();
@@ -617,7 +617,7 @@ public class TestListS3 {
         ArgumentCaptor<ListObjectsRequest> captureRequest = ArgumentCaptor.forClass(ListObjectsRequest.class);
         verify(mockS3Client, Mockito.times(1)).listObjects(captureRequest.capture());
         ListObjectsRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
+        assertEquals("test-bucket", request.bucketName());
         assertFalse(request.isRequesterPays());
         verify(mockS3Client, Mockito.never()).listVersions(any());
 
@@ -677,7 +677,7 @@ public class TestListS3 {
 
         assertEquals(TEST_TIMESTAMP, listS3.getListingSnapshot().getTimestamp());
 
-        runner.setProperty(RegionUtilV1.REGION, Regions.EU_CENTRAL_1.getName());
+        runner.setProperty(RegionUtilV1.REGION, Region.EU_CENTRAL_1.id());
 
         assertTrue(listS3.isResetTracking());
 
@@ -766,7 +766,7 @@ public class TestListS3 {
 
         assertNotNull(listS3.getListedEntityTracker());
 
-        runner.setProperty(RegionUtilV1.REGION, Regions.EU_CENTRAL_1.getName());
+        runner.setProperty(RegionUtilV1.REGION, Region.EU_CENTRAL_1.id());
 
         assertTrue(listS3.isResetTracking());
 
@@ -837,6 +837,6 @@ public class TestListS3 {
             runner.setProperty(ListS3.TRACKING_STATE_CACHE, serviceId);
         }
 
-        when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(new ObjectListing());
+        when(mockS3Client.listObjects(any(ListObjectsRequest.class))).thenReturn(ObjectListing.builder().build());
     }
 }

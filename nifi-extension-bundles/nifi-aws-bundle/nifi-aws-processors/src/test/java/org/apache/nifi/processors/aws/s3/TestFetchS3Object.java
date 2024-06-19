@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Object;
 import com.amazonaws.util.StringInputStream;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -40,6 +39,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -63,14 +65,14 @@ public class TestFetchS3Object {
 
     private TestRunner runner = null;
     private FetchS3Object mockFetchS3Object = null;
-    private AmazonS3Client mockS3Client = null;
+    private S3Client mockS3Client = null;
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = mock(AmazonS3Client.class);
+        mockS3Client = mock(S3Client.class);
         mockFetchS3Object = new FetchS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
+            protected S3Client createClient(final ProcessContext context, final AwsCredentialsProvider credentialsProvider, final Region region, final ClientOverrideConfiguration config,
                                                   final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
                 return mockS3Client;
             }
@@ -88,29 +90,29 @@ public class TestFetchS3Object {
         attrs.put("s3.region", "us-west-2");
         runner.enqueue(new byte[0], attrs);
 
-        S3Object s3ObjectResponse = new S3Object();
-        s3ObjectResponse.setBucketName("response-bucket-name");
-        s3ObjectResponse.setKey("response-key");
-        s3ObjectResponse.setObjectContent(new StringInputStream("Some Content"));
+        ResponseInputStream<GetObjectResponse> s3ObjectResponse = S3Object.builder().build();
+        s3ObjectResponse.response().bucketName("response-bucket-name");
+        s3ObjectResponse.response().key("response-key");
+        s3ObjectResponse.response().objectContent(new StringInputStream("Some Content"));
         ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
-        metadata.setContentDisposition("key/path/to/file.txt");
-        metadata.setContentType("text/plain");
-        metadata.setContentMD5("testMD5hash");
+        metadata.contentDisposition("key/path/to/file.txt");
+        metadata.contentType("text/plain");
+        metadata.contentMd5("testMD5hash");
         Date expiration = new Date();
-        metadata.setExpirationTime(expiration);
-        metadata.setExpirationTimeRuleId("testExpirationRuleId");
+        metadata.expirationTime(expiration);
+        metadata.expirationTimeRuleId("testExpirationRuleId");
         Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("userKey1", "userValue1");
         userMetadata.put("userKey2", "userValue2");
-        metadata.setUserMetadata(userMetadata);
-        metadata.setSSEAlgorithm("testAlgorithm");
-        when(metadata.getETag()).thenReturn("test-etag");
-        s3ObjectResponse.setObjectMetadata(metadata);
+        metadata.userMetadata(userMetadata);
+        metadata.sseAlgorithm("testAlgorithm");
+        when(metadata.eTag()).thenReturn("test-etag");
+        s3ObjectResponse.response().objectMetadata(metadata);
         when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
 
         final long mockSize = 20L;
         final ObjectMetadata objectMetadata = mock(ObjectMetadata.class);
-        when(objectMetadata.getContentLength()).thenReturn(mockSize);
+        when(objectMetadata.contentLength()).thenReturn(mockSize);
         when(mockS3Client.getObjectMetadata(any())).thenReturn(objectMetadata);
 
         runner.run(1);
@@ -122,10 +124,10 @@ public class TestFetchS3Object {
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
         GetObjectRequest request = captureRequest.getValue();
-        assertEquals("request-bucket", request.getBucketName());
-        assertEquals("request-key", request.getKey());
+        assertEquals("request-bucket", request.bucketName());
+        assertEquals("request-key", request.key());
         assertFalse(request.isRequesterPays());
-        assertNull(request.getVersionId());
+        assertNull(request.versionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
@@ -155,24 +157,24 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        S3Object s3ObjectResponse = new S3Object();
-        s3ObjectResponse.setBucketName("response-bucket-name");
-        s3ObjectResponse.setKey("response-key");
-        s3ObjectResponse.setObjectContent(new StringInputStream("Some Content"));
+        ResponseInputStream<GetObjectResponse> s3ObjectResponse = S3Object.builder().build();
+        s3ObjectResponse.response().bucketName("response-bucket-name");
+        s3ObjectResponse.response().key("response-key");
+        s3ObjectResponse.response().objectContent(new StringInputStream("Some Content"));
         ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
-        metadata.setContentDisposition("key/path/to/file.txt");
-        metadata.setContentType("text/plain");
-        metadata.setContentMD5("testMD5hash");
+        metadata.contentDisposition("key/path/to/file.txt");
+        metadata.contentType("text/plain");
+        metadata.contentMd5("testMD5hash");
         Date expiration = new Date();
-        metadata.setExpirationTime(expiration);
-        metadata.setExpirationTimeRuleId("testExpirationRuleId");
+        metadata.expirationTime(expiration);
+        metadata.expirationTimeRuleId("testExpirationRuleId");
         Map<String, String> userMetadata = new HashMap<>();
         userMetadata.put("userKey1", "userValue1");
         userMetadata.put("userKey2", "userValue2");
-        metadata.setUserMetadata(userMetadata);
-        metadata.setSSEAlgorithm("testAlgorithm");
-        when(metadata.getETag()).thenReturn("test-etag");
-        s3ObjectResponse.setObjectMetadata(metadata);
+        metadata.userMetadata(userMetadata);
+        metadata.sseAlgorithm("testAlgorithm");
+        when(metadata.eTag()).thenReturn("test-etag");
+        s3ObjectResponse.response().objectMetadata(metadata);
         when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
 
         runner.run(1);
@@ -180,10 +182,10 @@ public class TestFetchS3Object {
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
         GetObjectRequest request = captureRequest.getValue();
-        assertEquals("request-bucket", request.getBucketName());
-        assertEquals("request-key", request.getKey());
+        assertEquals("request-bucket", request.bucketName());
+        assertEquals("request-key", request.key());
         assertTrue(request.isRequesterPays());
-        assertNull(request.getVersionId());
+        assertNull(request.versionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
@@ -214,13 +216,13 @@ public class TestFetchS3Object {
         attrs.put("s3.version", "request-version");
         runner.enqueue(new byte[0], attrs);
 
-        S3Object s3ObjectResponse = new S3Object();
-        s3ObjectResponse.setBucketName("response-bucket-name");
-        s3ObjectResponse.setObjectContent(new StringInputStream("Some Content"));
+        ResponseInputStream<GetObjectResponse> s3ObjectResponse = S3Object.builder().build();
+        s3ObjectResponse.response().bucketName("response-bucket-name");
+        s3ObjectResponse.response().objectContent(new StringInputStream("Some Content"));
         ObjectMetadata metadata = Mockito.spy(ObjectMetadata.class);
-        metadata.setContentDisposition("key/path/to/file.txt");
-        when(metadata.getVersionId()).thenReturn("response-version");
-        s3ObjectResponse.setObjectMetadata(metadata);
+        metadata.contentDisposition("key/path/to/file.txt");
+        when(metadata.versionId()).thenReturn("response-version");
+        s3ObjectResponse.response().objectMetadata(metadata);
         when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
 
         runner.run(1);
@@ -228,9 +230,9 @@ public class TestFetchS3Object {
         ArgumentCaptor<GetObjectRequest> captureRequest = ArgumentCaptor.forClass(GetObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).getObject(captureRequest.capture());
         GetObjectRequest request = captureRequest.getValue();
-        assertEquals("request-bucket", request.getBucketName());
-        assertEquals("request-key", request.getKey());
-        assertEquals("request-version", request.getVersionId());
+        assertEquals("request-bucket", request.bucketName());
+        assertEquals("request-key", request.key());
+        assertEquals("request-version", request.versionId());
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
@@ -251,7 +253,7 @@ public class TestFetchS3Object {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.doThrow(new AmazonS3Exception("NoSuchBucket")).when(mockS3Client).getObject(Mockito.any());
+        Mockito.doThrow(S3ExceptionClient.builder().build()).when(mockS3Client).getObject(Mockito.any());
 
         runner.run(1);
 
@@ -266,15 +268,15 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        final AmazonS3Exception exception = new AmazonS3Exception("The specified bucket does not exist");
+        final S3ExceptionClient exception = S3ExceptionClient.builder().build();
 
         final Map<String, String> details = new LinkedHashMap<>();
         details.put("BucketName", "us-east-1");
         details.put("Error", "ABC123");
 
-        exception.setAdditionalDetails(details);
-        exception.setErrorCode("NoSuchBucket");
-        exception.setStatusCode(HttpURLConnection.HTTP_NOT_FOUND);
+        exception.additionalDetails(details);
+        exception.errorCode("NoSuchBucket");
+        exception.statusCode(HttpURLConnection.HTTP_NOT_FOUND);
         Mockito.doThrow(exception).when(mockS3Client).getObject(Mockito.any());
         runner.run(1);
 
@@ -282,9 +284,9 @@ public class TestFetchS3Object {
         assertEquals(1, flowFiles.size());
         final MockFlowFile flowFile = flowFiles.iterator().next();
         assertEquals("NoSuchBucket", flowFile.getAttribute("s3.errorCode"));
-        assertTrue(exception.getMessage().startsWith(flowFile.getAttribute("s3.errorMessage")));
+        assertTrue(exception.message().startsWith(flowFile.getAttribute("s3.errorMessage")));
         assertEquals("404", flowFile.getAttribute("s3.statusCode"));
-        assertEquals(exception.getClass().getName(), flowFile.getAttribute("s3.exception"));
+        assertEquals(exception.class().name(), flowFile.getAttribute("s3.exception"));
     }
 
     @Test
@@ -295,10 +297,10 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        final AmazonS3Exception exception = new AmazonS3Exception("signature");
-        exception.setAdditionalDetails(Collections.singletonMap("CanonicalRequestBytes", "AA BB CC DD EE FF"));
-        exception.setErrorCode("SignatureDoesNotMatch");
-        exception.setStatusCode(HttpURLConnection.HTTP_FORBIDDEN);
+        final S3ExceptionClient exception = S3ExceptionClient.builder().build();
+        exception.additionalDetails(Collections.singletonMap("CanonicalRequestBytes", "AA BB CC DD EE FF"));
+        exception.errorCode("SignatureDoesNotMatch");
+        exception.statusCode(HttpURLConnection.HTTP_FORBIDDEN);
         Mockito.doThrow(exception).when(mockS3Client).getObject(Mockito.any());
         runner.run(1);
 
@@ -306,9 +308,9 @@ public class TestFetchS3Object {
         assertEquals(1, flowFiles.size());
         final MockFlowFile flowFile = flowFiles.iterator().next();
         assertEquals("SignatureDoesNotMatch", flowFile.getAttribute("s3.errorCode"));
-        assertTrue(exception.getMessage().startsWith(flowFile.getAttribute("s3.errorMessage")));
+        assertTrue(exception.message().startsWith(flowFile.getAttribute("s3.errorMessage")));
         assertEquals("403", flowFile.getAttribute("s3.statusCode"));
-        assertEquals(exception.getClass().getName(), flowFile.getAttribute("s3.exception"));
+        assertEquals(exception.class().name(), flowFile.getAttribute("s3.exception"));
     }
 
     @Test
@@ -351,7 +353,7 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        AmazonS3Exception amazonException = new AmazonS3Exception("testing");
+        S3ExceptionClient amazonException = S3ExceptionClient.builder().build();
         Mockito.doThrow(new FlowFileAccessException("testing nested", amazonException)).when(mockS3Client).getObject(Mockito.any());
 
         runner.run(1);

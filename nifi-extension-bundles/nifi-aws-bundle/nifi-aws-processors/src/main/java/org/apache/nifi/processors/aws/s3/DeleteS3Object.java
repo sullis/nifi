@@ -17,9 +17,9 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.DeleteVersionRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -95,7 +95,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             return;
         }
 
-        final AmazonS3Client s3;
+        final S3Client s3;
         try {
             s3 = getS3Client(context, flowFile.getAttributes());
         } catch (Exception e) {
@@ -114,11 +114,11 @@ public class DeleteS3Object extends AbstractS3Processor {
         // Deletes a key on Amazon S3
         try {
             if (versionId == null) {
-                final DeleteObjectRequest r = new DeleteObjectRequest(bucket, key);
+                final DeleteObjectRequest r = DeleteObjectRequest.builder().build();
                 // This call returns success if object doesn't exist
                 s3.deleteObject(r);
             } else {
-                final DeleteVersionRequest r = new DeleteVersionRequest(bucket, key, versionId);
+                final DeleteVersionRequest r = DeleteVersionRequest.builder().build();
                 s3.deleteVersion(r);
             }
         } catch (final AmazonServiceException ase) {

@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 
 
 /**
@@ -39,9 +38,9 @@ public class NamedProfileCredentialsStrategy extends AbstractCredentialsStrategy
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
+    public AwsCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
         final String profileName = propertyContext.getProperty(AWSCredentialsProviderControllerService.PROFILE_NAME).evaluateAttributeExpressions().getValue();
-        return new ProfileCredentialsProvider(profileName);
+        return ProfileCredentialsProvider.builder().build();
     }
 
     @Override

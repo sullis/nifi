@@ -186,7 +186,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
 
             // check for errors
             if (!response.failed().isEmpty()) {
-                throw new ProcessException(response.failed().get(0).toString());
+                throw new ProcessException(response.failed().(0).toString());
             }
         } catch (final Exception e) {
             getLogger().error("Failed to send messages to Amazon SQS; routing to failure", e);

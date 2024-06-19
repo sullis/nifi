@@ -18,12 +18,12 @@ package org.apache.nifi.processors.aws.util;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.regions.Regions;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import software.amazon.awssdk.regions.Region;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -46,7 +46,7 @@ public final class RegionUtilV1 {
             .description("The AWS Region to connect to.")
             .required(true)
             .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .defaultValue(createAllowableValue(Region.DEFAULT_REGION).getValue())
             .build();
 
     public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
@@ -69,12 +69,12 @@ public final class RegionUtilV1 {
         return ArrayUtils.add(availableRegions, ATTRIBUTE_DEFINED_REGION);
     }
 
-    public static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    public static AllowableValue createAllowableValue(final Region region) {
+        return new AllowableValue(region.id(), region.getDescription(), "AWS Region Code : " + region.id());
     }
 
     public static AllowableValue[] getAvailableRegions() {
-        return Arrays.stream(Regions.values())
+        return Arrays.stream(Region.values())
                 .map(RegionUtilV1::createAllowableValue)
                 .toArray(AllowableValue[]::new);
     }

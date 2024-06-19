@@ -17,12 +17,12 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
-import com.amazonaws.services.s3.model.CryptoConfigurationV2;
-import com.amazonaws.services.s3.model.KMSEncryptionMaterialsProvider;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3EncryptionClientV2Client;
+import software.amazon.awssdk.services.s3.model.CryptoConfigurationV2;
+import software.amazon.awssdk.services.s3.S3EncryptionClientV2Builder;
+import software.amazon.awssdk.services.s3.model.KMSEncryptionMaterialsProvider;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.function.Consumer;
@@ -44,17 +44,17 @@ public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
-        final KMSEncryptionMaterialsProvider encryptionMaterialsProvider = new KMSEncryptionMaterialsProvider(keyIdOrMaterial);
+    public S3Client createEncryptionClient(final Consumer<S3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
+        final KMSEncryptionMaterialsProvider encryptionMaterialsProvider = KMSEncryptionMaterialsProvider.builder().build();
 
-        final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
+        final CryptoConfigurationV2 cryptoConfig = CryptoConfigurationV2.builder().build();
         if (StringUtils.isNotBlank(kmsRegion)) {
-            cryptoConfig.setAwsKmsRegion(RegionUtils.getRegion(kmsRegion));
+            cryptoConfig.awsKmsRegion(RegionUtils.getRegion(kmsRegion));
         }
 
-        final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
-                .withCryptoConfiguration(cryptoConfig)
-                .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
+        final S3EncryptionClientV2Builder builder = S3EncryptionClientV2Client.encryptionBuilder()
+                .cryptoConfiguration(cryptoConfig)
+                .encryptionMaterialsProvider(encryptionMaterialsProvider);
         clientBuilder.accept(builder);
         return builder.build();
     }

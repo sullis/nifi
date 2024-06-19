@@ -17,9 +17,7 @@
 package org.apache.nifi.processors.aws;
 
 import com.amazonaws.AmazonWebServiceClient;
-import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
@@ -47,6 +45,8 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextService;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
@@ -194,20 +194,20 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         config.removeProperty(OBSOLETE_CREDENTIALS_FILE);
     }
 
-    protected ClientConfiguration createConfiguration(final ProcessContext context) {
+    protected ClientOverrideConfiguration createConfiguration(final ProcessContext context) {
         return createConfiguration(context, context.getMaxConcurrentTasks());
     }
 
-    protected ClientConfiguration createConfiguration(final PropertyContext context, final int maxConcurrentTasks) {
-        final ClientConfiguration config = new ClientConfiguration();
-        config.setMaxConnections(maxConcurrentTasks);
-        config.setMaxErrorRetry(0);
-        config.setUserAgentPrefix("NiFi");
-        config.setProtocol(Protocol.HTTPS);
+    protected ClientOverrideConfiguration createConfiguration(final PropertyContext context, final int maxConcurrentTasks) {
+        final ClientOverrideConfiguration config = ClientOverrideConfiguration.builder().build();
+        config.maxConnections(maxConcurrentTasks);
+        config.maxErrorRetry(0);
+        config/*AWS SDK for Java v2 migration: userAgentPrefix override is a request-level config in v2. See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/core/RequestOverrideConfiguration.Builder.html#addApiName(software.amazon.awssdk.core.ApiName).*/.userAgentPrefix("NiFi");
+        config.protocol(Protocol.HTTPS);
 
         final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        config.setConnectionTimeout(commsTimeout);
-        config.setSocketTimeout(commsTimeout);
+        config.connectionTimeout(commsTimeout);
+        config.socketTimeout(commsTimeout);
 
         if (this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -215,7 +215,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
                 final SSLContext sslContext = sslContextService.createContext();
                 // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
                 SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-                config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+                config.getApacheHttpClientConfig().sslSocketFactory(sdkTLSSocketFactory);
             }
         }
 
@@ -229,12 +229,12 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         });
 
         if (Proxy.Type.HTTP.equals(proxyConfig.getProxyType())) {
-            config.setProxyHost(proxyConfig.getProxyServerHost());
-            config.setProxyPort(proxyConfig.getProxyServerPort());
+            config.proxyHost(proxyConfig.getProxyServerHost());
+            config.proxyPort(proxyConfig.getProxyServerPort());
 
             if (proxyConfig.hasCredential()) {
-                config.setProxyUsername(proxyConfig.getProxyUserName());
-                config.setProxyPassword(proxyConfig.getProxyUserPassword());
+                config.proxyUsername(proxyConfig.getProxyUserName());
+                config.proxyPassword(proxyConfig.getProxyUserPassword());
             }
         }
 
@@ -253,8 +253,8 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
      */
     public ClientType createClient(final ProcessContext context, final Region region) {
         getLogger().debug("Using AWS credentials provider service for creating client");
-        final AWSCredentialsProvider credentialsProvider = getCredentialsProvider(context);
-        final ClientConfiguration configuration = createConfiguration(context);
+        final AwsCredentialsProvider credentialsProvider = getCredentialsProvider(context);
+        final ClientOverrideConfiguration configuration = createConfiguration(context);
         final ClientType createdClient = createClient(context, credentialsProvider, region, configuration, getEndpointConfiguration(context, region));
         return createdClient;
     }
@@ -295,7 +295,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         return results;
     }
 
-    protected AWSCredentialsProvider getCredentialsProvider(final ProcessContext context) {
+    protected AwsCredentialsProvider getCredentialsProvider(final ProcessContext context) {
         final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
         return awsCredentialsProviderService.getCredentialsProvider();
     }
@@ -333,7 +333,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
      * @param config AWS client configuration
      * @return ClientType the client
      */
-    protected abstract ClientType createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, Region region, ClientConfiguration config,
+    protected abstract ClientType createClient(ProcessContext context, AwsCredentialsProvider credentialsProvider, Region region, ClientOverrideConfiguration config,
                                                AwsClientBuilder.EndpointConfiguration endpointConfiguration);
 
 }

@@ -100,7 +100,7 @@ public class ITDynamoDB extends AbstractDynamoDBIT {
 
     private void assertItemsExist(final int count, final String table, final boolean includeSortKey) {
         final BatchGetItemResponse response = getBatchGetItems(count, table, includeSortKey);
-        final List<Map<String, AttributeValue>> items = response.responses().get(table);
+        final List<Map<String, AttributeValue>> items = response.responses().(table);
         assertNotNull(items);
         assertEquals(count, items.size());
         items.forEach(item -> {
@@ -118,7 +118,7 @@ public class ITDynamoDB extends AbstractDynamoDBIT {
 
     private void assertItemsDoNotExist(final int count, final String table, final boolean includeSortKey) {
         final BatchGetItemResponse response = getBatchGetItems(count, table, includeSortKey);
-        final List<Map<String, AttributeValue>> items = response.responses().get(table);
+        final List<Map<String, AttributeValue>> items = response.responses().(table);
         assertNotNull(items);
         assertEquals(0, items.size());
     }

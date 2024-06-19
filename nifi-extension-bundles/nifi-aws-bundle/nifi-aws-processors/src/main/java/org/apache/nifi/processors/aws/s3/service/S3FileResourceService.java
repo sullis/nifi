@@ -17,11 +17,9 @@
 package org.apache.nifi.processors.aws.s3.service;
 
 import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Client;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -41,6 +39,9 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -84,7 +85,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
             S3_REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE);
 
-    private final Cache<Region, AmazonS3> clientCache = Caffeine.newBuilder().build();
+    private final Cache<Region, S3Client> clientCache = Caffeine.newBuilder().build();
 
     private volatile PropertyContext context;
 
@@ -101,7 +102,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
     @OnDisabled
     public void onDisabled() {
         this.context = null;
-        clientCache.asMap().values().forEach(AmazonS3::shutdown);
+        clientCache.asMap().values().forEach(S3Client::shutdown);
         clientCache.invalidateAll();
         clientCache.cleanUp();
     }
@@ -110,7 +111,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
     public FileResource getFileResource(Map<String, String> attributes) {
         final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
                 .asControllerService(AWSCredentialsProviderService.class);
-        final AmazonS3 client = getS3Client(attributes, awsCredentialsProviderService.getCredentialsProvider());
+        final S3Client client = getS3Client(attributes, awsCredentialsProviderService.getCredentialsProvider());
 
         try {
             return fetchObject(client, attributes);
@@ -127,7 +128,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
      * @return fetched s3 object as FileResource
      * @throws ProcessException if the object 'bucketName/key' does not exist
      */
-    private FileResource fetchObject(final AmazonS3 client, final Map<String, String> attributes) throws ProcessException,
+    private FileResource fetchObject(final S3Client client, final Map<String, String> attributes) throws ProcessException,
             SdkClientException {
         final String bucketName = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
@@ -140,15 +141,15 @@ public class S3FileResourceService extends AbstractControllerService implements 
             throw new ProcessException(String.format("Object '%s/%s' does not exist in s3", bucketName, key));
         }
 
-        final S3Object object = client.getObject(bucketName, key);
-        return new FileResource(object.getObjectContent(), object.getObjectMetadata().getContentLength());
+        finalResponseInputStream<GetObjectResponse> object = client.getObject(bucketName, key);
+        return new FileResource(object, object.response().objectMetadata().contentLength());
     }
 
-    protected AmazonS3 getS3Client(Map<String, String> attributes, AWSCredentialsProvider credentialsProvider) {
+    protected S3Client getS3Client(Map<String, String> attributes, AwsCredentialsProvider credentialsProvider) {
         final Region region = resolveS3Region(context, attributes);
-        return clientCache.get(region, ignored -> AmazonS3Client.builder()
-                .withRegion(region.getName())
-                .withCredentials(credentialsProvider)
+        return clientCache.get(region, ignored -> S3Client.builder()
+                .region(region.getName())
+                .credentialsProvider(credentialsProvider)
                 .build());
     }
 }

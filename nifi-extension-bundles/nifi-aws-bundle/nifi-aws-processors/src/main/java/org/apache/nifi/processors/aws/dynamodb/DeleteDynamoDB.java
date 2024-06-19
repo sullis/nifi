@@ -147,7 +147,7 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
 
             if (CollectionUtils.isNotEmpty(response.unprocessedItems())) {
                 // Handle unprocessed items
-                final List<WriteRequest> unprocessedItems = response.unprocessedItems().get(table);
+                final List<WriteRequest> unprocessedItems = response.unprocessedItems().(table);
                 for (final WriteRequest writeRequest : unprocessedItems) {
                     final Map<String, AttributeValue> item = writeRequest.deleteRequest().key();
                     final AttributeValue hashKeyValue = item.get(hashKeyName);

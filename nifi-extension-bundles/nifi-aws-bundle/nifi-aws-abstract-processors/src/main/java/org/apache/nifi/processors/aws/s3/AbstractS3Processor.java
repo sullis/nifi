@@ -17,23 +17,23 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.Signer;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CanonicalGrantee;
-import com.amazonaws.services.s3.model.EmailAddressGrantee;
-import com.amazonaws.services.s3.model.Grantee;
-import com.amazonaws.services.s3.model.Owner;
-import com.amazonaws.services.s3.model.Permission;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.AccessControlList;
+import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.CannedAccessControlList;
+import software.amazon.awssdk.services.s3.model.CanonicalGrantee;
+import software.amazon.awssdk.services.s3.model.EmailAddressGrantee;
+import software.amazon.awssdk.services.s3.model.Grantee;
+import software.amazon.awssdk.services.s3.model.Owner;
+import software.amazon.awssdk.services.s3.model.Permission;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -66,7 +66,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.ATTRIBUTE_DEFINED
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
 
-public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
+public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<S3Client> {
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
@@ -209,20 +209,20 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region,
-                                          final ClientConfiguration config, final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+    protected S3Client createClient(final ProcessContext context, final AwsCredentialsProvider credentialsProvider, final Region region,
+                                          final ClientOverrideConfiguration config, final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         getLogger().info("Creating client with credentials provider");
         initializeSignerOverride(context, config);
         AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
 
-        final Consumer<AmazonS3Builder<?, ?>> clientBuilder = builder -> {
+        final Consumer<S3Builder<?, ?>> clientBuilder = builder -> {
             if (endpointConfiguration == null) {
-                builder.withRegion(region.getName());
+                builder.region(region.getName());
             } else {
-                builder.withEndpointConfiguration(endpointConfiguration);
+                builder.endpointOverride(endpointConfiguration);
             }
-            builder.withClientConfiguration(config);
-            builder.withCredentials(credentialsProvider);
+            builder.overrideConfiguration(config);
+            builder.credentialsProvider(credentialsProvider);
 
             final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
             if (useChunkedEncoding == Boolean.FALSE) {
@@ -232,21 +232,21 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
             final boolean endpointOverrideSet = !StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty();
             if (usePathStyleAccess == Boolean.TRUE || endpointOverrideSet) {
-                builder.withPathStyleAccessEnabled(true);
+                builder.pathStyleAccessEnabled(true);
             }
         };
 
-        AmazonS3 s3Client = null;
+        S3Client s3Client = null;
         if (encryptionService != null) {
             s3Client = encryptionService.createEncryptionClient(clientBuilder);
         }
         if (s3Client == null) {
-            final AmazonS3ClientBuilder builder = AmazonS3Client.builder();
+            final S3ClientBuilder builder = S3Client.builder();
             clientBuilder.accept(builder);
             s3Client = builder.build();
         }
 
-        return (AmazonS3Client) s3Client;
+        return (S3Client) s3Client;
     }
 
 
@@ -279,7 +279,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @param attributes FlowFile attributes
      * @return The created S3 client
      */
-    protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
+    protected S3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
         final Region region = resolveS3Region(context, attributes);
         return getClient(context, region);
     }
@@ -290,7 +290,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @param attributes FlowFile attributes
      * @return The newly created S3 client
      */
-    protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
+    protected S3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
         final Region region = resolveS3Region(context, attributes);
         return createClient(context, region);
     }
@@ -304,16 +304,16 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     }
 
 
-    private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
+    private void initializeSignerOverride(final ProcessContext context, final ClientOverrideConfiguration config) {
         final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
         final AwsSignerType signerType = AwsSignerType.forValue(signer);
 
         if (signerType == CUSTOM_SIGNER) {
             final String signerClassName = context.getProperty(S3_CUSTOM_SIGNER_CLASS_NAME).evaluateAttributeExpressions().getValue();
 
-            config.setSignerOverride(AwsCustomSignerUtil.registerCustomSigner(signerClassName));
+            config.signerOverride(AwsCustomSignerUtil.registerCustomSigner(signerClassName));
         } else if (signerType != DEFAULT_SIGNER) {
-            config.setSignerOverride(signer);
+            config.signerOverride(signer);
         }
     }
 
@@ -324,9 +324,9 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
 
         if (value.contains("@")) {
-            return new EmailAddressGrantee(value);
+            return EmailAddressGrantee.builder().build();
         } else {
-            return new CanonicalGrantee(value);
+            return CanonicalGrantee.builder().build();
         }
     }
 
@@ -360,43 +360,43 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
 
         final String ownerId = context.getProperty(OWNER).evaluateAttributeExpressions(flowFile).getValue();
         if (!StringUtils.isEmpty(ownerId)) {
-            final Owner owner = new Owner();
-            owner.setId(ownerId);
-            acl = new AccessControlList();
-            acl.setOwner(owner);
+            final Owner owner = Owner.builder().build();
+            owner.id(ownerId);
+            acl = AccessControlList.builder().build();
+            acl.owner(owner);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(FULL_CONTROL_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
-                acl = new AccessControlList();
+                acl = AccessControlList.builder().build();
             }
             acl.grantPermission(grantee, Permission.FullControl);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(READ_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
-                acl = new AccessControlList();
+                acl = AccessControlList.builder().build();
             }
             acl.grantPermission(grantee, Permission.Read);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(WRITE_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
-                acl = new AccessControlList();
+                acl = AccessControlList.builder().build();
             }
             acl.grantPermission(grantee, Permission.Write);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(READ_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
-                acl = new AccessControlList();
+                acl = AccessControlList.builder().build();
             }
             acl.grantPermission(grantee, Permission.ReadAcp);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(WRITE_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
-                acl = new AccessControlList();
+                acl = AccessControlList.builder().build();
             }
             acl.grantPermission(grantee, Permission.WriteAcp);
         }
@@ -406,8 +406,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
 
     protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, FlowFile flowFile) {
         flowFile = session.putAttribute(flowFile, "s3.exception", e.getClass().getName());
-        if (e instanceof AmazonS3Exception) {
-            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((AmazonS3Exception) e).getAdditionalDetails());
+        if (e instanceof S3ExceptionClient) {
+            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((S3ExceptionClient) e).additionalDetails());
         }
         if (e instanceof final AmazonServiceException ase) {
             flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());

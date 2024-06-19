@@ -191,7 +191,7 @@ public class GetSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
             attributes.put("sqs.receipt.handle", message.receiptHandle());
 
             flowFile = session.putAllAttributes(flowFile, attributes);
-            flowFile = session.write(flowFile, out -> out.write(message.body().getBytes(charset)));
+            flowFile = session.write(flowFile, out -> out.write(message.body().bytes(charset)));
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().receive(flowFile, queueUrl);

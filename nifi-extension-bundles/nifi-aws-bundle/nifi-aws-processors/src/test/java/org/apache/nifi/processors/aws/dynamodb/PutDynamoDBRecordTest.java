@@ -115,8 +115,8 @@ public class PutDynamoDBRecordTest {
 
         final BatchWriteItemRequest result = captor.getValue();
         assertTrue(result.hasRequestItems());
-        assertNotNull(result.requestItems().get(TABLE_NAME));
-        assertItemsConvertedProperly(result.requestItems().get(TABLE_NAME), 1);
+        assertNotNull(result.requestItems().(TABLE_NAME));
+        assertItemsConvertedProperly(result.requestItems().(TABLE_NAME), 1);
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
     }
 
@@ -129,8 +129,8 @@ public class PutDynamoDBRecordTest {
 
         final BatchWriteItemRequest result = captor.getValue();
         assertTrue(result.hasRequestItems());
-        assertNotNull(result.requestItems().get(TABLE_NAME));
-        assertItemsConvertedProperly(result.requestItems().get(TABLE_NAME), 3);
+        assertNotNull(result.requestItems().(TABLE_NAME));
+        assertItemsConvertedProperly(result.requestItems().(TABLE_NAME), 3);
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
     }
 
@@ -146,13 +146,13 @@ public class PutDynamoDBRecordTest {
 
         final BatchWriteItemRequest result1 = results.get(0);
         assertTrue(result1.hasRequestItems());
-        assertNotNull(result1.requestItems().get(TABLE_NAME));
-        assertItemsConvertedProperly(result1.requestItems().get(TABLE_NAME), 25);
+        assertNotNull(result1.requestItems().(TABLE_NAME));
+        assertItemsConvertedProperly(result1.requestItems().(TABLE_NAME), 25);
 
         final BatchWriteItemRequest result2 = results.get(1);
         assertTrue(result2.hasRequestItems());
-        assertNotNull(result2.requestItems().get(TABLE_NAME));
-        assertItemsConvertedProperly(result2.requestItems().get(TABLE_NAME), 4);
+        assertNotNull(result2.requestItems().(TABLE_NAME));
+        assertItemsConvertedProperly(result2.requestItems().(TABLE_NAME), 4);
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
@@ -180,7 +180,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         Assertions.assertEquals(1, captor.getAllValues().size());
-        Assertions.assertEquals(4, captor.getValue().requestItems().get(TABLE_NAME).size());
+        Assertions.assertEquals(4, captor.getValue().requestItems().(TABLE_NAME).size());
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
@@ -210,9 +210,9 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         final BatchWriteItemRequest result = captor.getValue();
-        Assertions.assertEquals(1, result.requestItems().get(TABLE_NAME).size());
+        Assertions.assertEquals(1, result.requestItems().(TABLE_NAME).size());
 
-        final Map<String, AttributeValue> item = result.requestItems().get(TABLE_NAME).iterator().next().putRequest().item();
+        final Map<String, AttributeValue> item = result.requestItems().(TABLE_NAME).iterator().next().putRequest().item();
         Assertions.assertEquals(4, item.size());
         Assertions.assertEquals(string("P0"), item.get("partition"));
         assertTrue(item.containsKey("generated"));
@@ -230,7 +230,7 @@ public class PutDynamoDBRecordTest {
         runner.run();
 
         final List<Map<String, AttributeValue>> items = new ArrayList<>();
-        captor.getAllValues().forEach(capture -> capture.requestItems().get(TABLE_NAME).stream()
+        captor.getAllValues().forEach(capture -> capture.requestItems().(TABLE_NAME).stream()
                 .map(WriteRequest::putRequest)
                 .map(PutRequest::item)
                 .forEach(items::add));

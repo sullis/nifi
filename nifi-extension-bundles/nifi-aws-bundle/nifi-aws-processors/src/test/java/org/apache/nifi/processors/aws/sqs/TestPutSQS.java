@@ -72,8 +72,8 @@ public class TestPutSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
-        assertEquals("hello", request.entries().get(0).messageAttributes().get("x-custom-prop").stringValue());
-        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
+        assertEquals("hello", request.entries().(0).messageAttributes().("x-custom-prop").stringValue());
+        assertEquals("TestMessageBody", request.entries().(0).messageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }
@@ -94,7 +94,7 @@ public class TestPutSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
-        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
+        assertEquals("TestMessageBody", request.entries().(0).messageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_FAILURE, 1);
     }
@@ -120,10 +120,10 @@ public class TestPutSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
-        assertEquals("hello", request.entries().get(0).messageAttributes().get("x-custom-prop").stringValue());
-        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
-        assertEquals("test1234", request.entries().get(0).messageGroupId());
-        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.entries().get(0).messageDeduplicationId());
+        assertEquals("hello", request.entries().(0).messageAttributes().("x-custom-prop").stringValue());
+        assertEquals("TestMessageBody", request.entries().(0).messageBody());
+        assertEquals("test1234", request.entries().(0).messageGroupId());
+        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.entries().(0).messageDeduplicationId());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }

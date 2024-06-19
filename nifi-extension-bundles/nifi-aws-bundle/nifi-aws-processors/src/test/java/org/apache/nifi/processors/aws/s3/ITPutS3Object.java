@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
+import software.amazon.awssdk.services.s3.model.MultipartUpload;
+import software.amazon.awssdk.services.s3.model.MultipartUploadListing;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PartETag;
+import software.amazon.awssdk.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.services.s3.model.StorageClass;
+import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.fileresource.service.StandardFileResourceService;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
@@ -122,8 +122,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
         List<S3ObjectSummary> objectSummaries = getClient().listObjects(BUCKET_NAME).getObjectSummaries();
         assertEquals(1, objectSummaries.size());
-        assertEquals(objectSummaries.getFirst().getKey(), resourcePath.getFileName().toString());
-        assertNotEquals(0, objectSummaries.getFirst().getSize());
+        assertEquals(objectSummaries.getFirst().key(), resourcePath.getFileName().toString());
+        assertNotEquals(0, objectSummaries.getFirst().size());
     }
 
     @Test
@@ -488,7 +488,7 @@ public class ITPutS3Object extends AbstractS3IT {
         state2.setFilePosition(10001L);
         state2.setTimestamp(8675309L);
         for (int partNum = 1; partNum < 5; partNum++) {
-            state2.addPartETag(new PartETag(partNum, "PartETag-" + partNum));
+            state2.addPartETag(PartETag.builder().build());
         }
         state2.setPartSize(20002L);
         state2.setStorageClass(StorageClass.ReducedRedundancy);
@@ -540,21 +540,21 @@ public class ITPutS3Object extends AbstractS3IT {
         processor.persistLocalState(cacheKey3, state3orig);
 
         final List<MultipartUpload> uploadList = new ArrayList<>();
-        final MultipartUpload upload1 = new MultipartUpload();
-        upload1.setKey(key);
-        upload1.setUploadId("");
+        final MultipartUpload upload1 = MultipartUpload.builder().build();
+        upload1.key(key);
+        upload1.uploadId("");
         uploadList.add(upload1);
-        final MultipartUpload upload2 = new MultipartUpload();
-        upload2.setKey(key + "-v2");
-        upload2.setUploadId("1234");
+        final MultipartUpload upload2 = MultipartUpload.builder().build();
+        upload2.key(key + "-v2");
+        upload2.uploadId("1234");
         uploadList.add(upload2);
-        final MultipartUpload upload3 = new MultipartUpload();
-        upload3.setKey(key + "-v3");
-        upload3.setUploadId("5678");
+        final MultipartUpload upload3 = MultipartUpload.builder().build();
+        upload3.key(key + "-v3");
+        upload3.uploadId("5678");
         uploadList.add(upload3);
-        final MultipartUploadListing uploadListing = new MultipartUploadListing();
-        uploadListing.setMultipartUploads(uploadList);
-        final AmazonS3 mockClient = mock(AmazonS3.class);
+        final MultipartUploadListing uploadListing = MultipartUploadListing.builder().build();
+        uploadListing.multipartUploads(uploadList);
+        final S3Client mockClient = mock(S3Client.class);
         when(mockClient.listMultipartUploads(any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
 
         /*
@@ -617,34 +617,34 @@ public class ITPutS3Object extends AbstractS3IT {
          *      1. v2 has 2 and then 4 tags
          *      2. v3 has 4 and then 2 tags
          */
-        state2orig.getPartETags().add(new PartETag(1, "state 2 tag one"));
-        state2orig.getPartETags().add(new PartETag(2, "state 2 tag two"));
+        state2orig.getPartETags().add(PartETag.builder().build());
+        state2orig.getPartETags().add(PartETag.builder().build());
         processor.persistLocalState(cacheKey2, state2orig);
-        state2orig.getPartETags().add(new PartETag(3, "state 2 tag three"));
-        state2orig.getPartETags().add(new PartETag(4, "state 2 tag four"));
+        state2orig.getPartETags().add(PartETag.builder().build());
+        state2orig.getPartETags().add(PartETag.builder().build());
         processor.persistLocalState(cacheKey2, state2orig);
 
-        state3orig.getPartETags().add(new PartETag(1, "state 3 tag one"));
-        state3orig.getPartETags().add(new PartETag(2, "state 3 tag two"));
-        state3orig.getPartETags().add(new PartETag(3, "state 3 tag three"));
-        state3orig.getPartETags().add(new PartETag(4, "state 3 tag four"));
+        state3orig.getPartETags().add(PartETag.builder().build());
+        state3orig.getPartETags().add(PartETag.builder().build());
+        state3orig.getPartETags().add(PartETag.builder().build());
+        state3orig.getPartETags().add(PartETag.builder().build());
         processor.persistLocalState(cacheKey3, state3orig);
         state3orig.getPartETags().remove(state3orig.getPartETags().size() - 1);
         state3orig.getPartETags().remove(state3orig.getPartETags().size() - 1);
         processor.persistLocalState(cacheKey3, state3orig);
 
         final List<MultipartUpload> uploadList = new ArrayList<>();
-        final MultipartUpload upload1 = new MultipartUpload();
-        upload1.setKey(key + "-bv2");
-        upload1.setUploadId("1234");
+        final MultipartUpload upload1 = MultipartUpload.builder().build();
+        upload1.key(key + "-bv2");
+        upload1.uploadId("1234");
         uploadList.add(upload1);
-        final MultipartUpload upload2 = new MultipartUpload();
-        upload2.setKey(key + "-bv3");
-        upload2.setUploadId("5678");
+        final MultipartUpload upload2 = MultipartUpload.builder().build();
+        upload2.key(key + "-bv3");
+        upload2.uploadId("5678");
         uploadList.add(upload2);
-        final MultipartUploadListing uploadListing = new MultipartUploadListing();
-        uploadListing.setMultipartUploads(uploadList);
-        final AmazonS3 mockClient = mock(AmazonS3.class);
+        final MultipartUploadListing uploadListing = MultipartUploadListing.builder().build();
+        uploadListing.multipartUploads(uploadList);
+        final S3Client mockClient = mock(S3Client.class);
         when(mockClient.listMultipartUploads(any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
 
         /*
@@ -671,13 +671,13 @@ public class ITPutS3Object extends AbstractS3IT {
         final String cacheKey = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-sr";
 
         final List<MultipartUpload> uploadList = new ArrayList<>();
-        final MultipartUpload upload1 = new MultipartUpload();
-        upload1.setKey(key);
-        upload1.setUploadId("1234");
+        final MultipartUpload upload1 = MultipartUpload.builder().build();
+        upload1.key(key);
+        upload1.uploadId("1234");
         uploadList.add(upload1);
-        final MultipartUploadListing uploadListing = new MultipartUploadListing();
-        uploadListing.setMultipartUploads(uploadList);
-        final AmazonS3 mockClient = mock(AmazonS3.class);
+        final MultipartUploadListing uploadListing = MultipartUploadListing.builder().build();
+        uploadListing.multipartUploads(uploadList);
+        final S3Client mockClient = mock(S3Client.class);
         when(mockClient.listMultipartUploads(any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);
 
         /*
@@ -802,16 +802,16 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
 
-        GetObjectTaggingResult result = getClient().getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, "tag-test.txt"));
-        List<Tag> objectTags = result.getTagSet();
+        GetObjectTaggingResponse result = getClient().getObjectTagging(GetObjectTaggingRequest.builder().build());
+        List<Tag> objectTags = result.tagSet();
 
         for (Tag tag : objectTags) {
-            System.out.println("Tag Key : " + tag.getKey() + ", Tag Value : " + tag.getValue());
+            System.out.println("Tag Key : " + tag.key() + ", Tag Value : " + tag.value());
         }
 
         assertEquals(1, objectTags.size());
-        assertEquals("PII", objectTags.get(0).getKey());
-        assertEquals("true", objectTags.get(0).getValue());
+        assertEquals("PII", objectTags.get(0).key());
+        assertEquals("true", objectTags.get(0).value());
     }
 
     @Test

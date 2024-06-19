@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.Signer;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -295,7 +294,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     );
 
     private volatile ConfigurationContext context;
-    private volatile AWSCredentialsProvider credentialsProvider;
+    private volatile AwsCredentialsProvider credentialsProvider;
 
     private final List<CredentialsStrategy> strategies = List.of(
         // Primary Credential Strategies
@@ -318,7 +317,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider() throws ProcessException {
+    public AwsCredentialsProvider getCredentialsProvider() throws ProcessException {
         return credentialsProvider;
     }
 
@@ -372,10 +371,10 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         getLogger().debug("Using credentials provider: {}", credentialsProvider.getClass());
     }
 
-    private AWSCredentialsProvider createCredentialsProvider(final PropertyContext propertyContext) {
+    private AwsCredentialsProvider createCredentialsProvider(final PropertyContext propertyContext) {
         final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(propertyContext);
-        AWSCredentialsProvider primaryCredentialsProvider = primaryStrategy.getCredentialsProvider(propertyContext);
-        AWSCredentialsProvider derivedCredentialsProvider = null;
+        AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getCredentialsProvider(propertyContext);
+        AwsCredentialsProvider derivedCredentialsProvider = null;
 
         for (CredentialsStrategy strategy : strategies) {
             if (strategy.canCreateDerivedCredential(propertyContext)) {

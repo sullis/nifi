@@ -48,7 +48,7 @@ public class ITDeleteSQS extends AbstractSQSIT {
                 .build();
         final ReceiveMessageResponse receiveMessageResult = getClient().receiveMessage(receiveMessageRequest);
         assertEquals(200, receiveMessageResult.sdkHttpResponse().statusCode());
-        final Message deleteMessage = receiveMessageResult.messages().get(0);
+        final Message deleteMessage = receiveMessageResult.messages().(0);
         final String receiptHandle = deleteMessage.receiptHandle();
 
         // Test - delete message with DeleteSQS
