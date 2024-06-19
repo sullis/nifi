@@ -17,10 +17,12 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
+import java.util.Collections;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectMetadataRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.RequestPayer;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.model.SSEAlgorithm;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -325,11 +327,11 @@ public class FetchS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
         final S3Client client = createClient(context, attributes);
-        final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
+        final HeadObjectRequest request = createHeadObjectRequest(context, attributes);
 
         try {
-            final ObjectMetadata objectMetadata = client.getObjectMetadata(request);
-            final long byteCount = objectMetadata.contentLength();
+            final HeadObjectResponse headObjectResponse = client.headObject(request);
+            final long byteCount = headObjectResponse.contentLength();
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("HEAD S3 Object")
                     .outcome(Outcome.SUCCESSFUL)
@@ -377,12 +379,12 @@ public class FetchS3Object extends AbstractS3Processor {
 
         final GetObjectRequest request = createGetObjectRequest(context, flowFile.getAttributes());
 
-        try (finalResponseInputStream<GetObjectResponse> s3Object = client.getObject(request)) {
+        try (final ResponseInputStream<GetObjectResponse> s3Object = client.getObject(request)) {
             if (s3Object == null) {
                 throw new IOException("AWS refused to execute this request.");
             }
             flowFile = session.importFrom(s3Object, flowFile);
-            attributes.put("s3.bucket", s3Object.response().bucketName());
+            attributes.put("s3.bucket", bucket);
 
             final ObjectMetadata metadata = s3Object.response().objectMetadata();
             if (metadata.contentDisposition() != null) {
@@ -452,20 +454,22 @@ public class FetchS3Object extends AbstractS3Processor {
         session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
     }
 
-    private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {
+    private HeadObjectRequest createHeadObjectRequest(final ProcessContext context, final Map<String, String> attributes) {
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
-        final GetObjectMetadataRequest request;
-        if (versionId == null) {
-            request = GetObjectMetadataRequest.builder().build();
-        } else {
-            request = GetObjectMetadataRequest.builder().build();
+        HeadObjectRequest.Builder requestBuilder = HeadObjectRequest.builder();
+        requestBuilder.bucket(bucket);
+        requestBuilder.key(key);
+        if (versionId != null) {
+            requestBuilder.versionId(versionId);
         }
-        request.requesterPays(requesterPays);
-        return request;
+        if (requesterPays) {
+            requestBuilder.requestPayer(RequestPayer.REQUESTER);
+        }
+        return requestBuilder.build();
     }
 
     private GetObjectRequest createGetObjectRequest(final ProcessContext context, final Map<String, String> attributes) {
@@ -505,7 +509,7 @@ public class FetchS3Object extends AbstractS3Processor {
 
         final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
         if (encryptionService != null) {
-            encryptionService.configureGetObjectRequest(request, ObjectMetadata.builder().build());
+            encryptionService.configureGetObjectRequest(request, Collections.emptyMap());
         }
         return request;
     }

@@ -22,7 +22,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectMetadataRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -577,9 +577,9 @@ public class TestListS3 {
 
         runner.run();
 
-        ArgumentCaptor<GetObjectMetadataRequest> captureRequest = ArgumentCaptor.forClass(GetObjectMetadataRequest.class);
+        ArgumentCaptor<HeadObjectRequest> captureRequest = ArgumentCaptor.forClass(HeadObjectRequest.class);
         verify(mockS3Client, Mockito.times(1)).getObjectMetadata(captureRequest.capture());
-        GetObjectMetadataRequest request = captureRequest.getValue();
+        HeadObjectRequest request = captureRequest.getValue();
 
         assertEquals("test-bucket", request.bucketName());
         assertEquals("a", request.key());

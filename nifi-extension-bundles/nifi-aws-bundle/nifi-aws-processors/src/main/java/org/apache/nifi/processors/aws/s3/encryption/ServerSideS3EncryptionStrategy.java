@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -31,12 +31,12 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  */
 public class ServerSideS3EncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    public void configurePutObjectRequest(PutObjectRequest request, Map<String, String> objectMetadata, String keyValue) {
         objectMetadata.sseAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest request, Map<String, String> objectMetadata, String keyValue) {
         objectMetadata.sseAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
     }
 }

@@ -25,7 +25,7 @@ import software.amazon.awssdk.services.kms.model.CreateKeyResponse;
 import software.amazon.awssdk.services.kms.model.GenerateDataKeyRequest;
 import software.amazon.awssdk.services.kms.model.GenerateDataKeyResponse;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
 import software.amazon.awssdk.services.s3.model.ObjectListing;
@@ -139,7 +139,7 @@ public abstract class AbstractS3IT {
 
             DeleteBucketRequest dbr = DeleteBucketRequest.builder().build();
             client.deleteBucket(dbr);
-        } catch (final S3ExceptionClient e) {
+        } catch (final S3Exception e) {
             logger.error("Unable to delete bucket {}", BUCKET_NAME, e);
         }
     }
@@ -164,21 +164,21 @@ public abstract class AbstractS3IT {
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
     }
 
-    protected void putTestFile(String key, File file) throws S3ExceptionClient {
+    protected void putTestFile(String key, File file) throws S3Exception {
         PutObjectRequest putRequest = PutObjectRequest.builder().build();
         client.putObject(putRequest);
     }
 
-    protected void putTestFileEncrypted(String key, File file) throws S3ExceptionClient, FileNotFoundException {
-        ObjectMetadata objectMetadata = ObjectMetadata.builder().build();
+    protected void putTestFileEncrypted(String key, File file) throws S3Exception, FileNotFoundException {
+        Map<String, String> objectMetadata = ObjectMetadata.builder().build();
         objectMetadata.sseAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         PutObjectRequest putRequest = PutObjectRequest.builder().build();
 
         client.putObject(putRequest);
     }
 
-    protected void putFileWithUserMetadata(String key, File file, Map<String, String> userMetadata) throws S3ExceptionClient, FileNotFoundException {
-        ObjectMetadata objectMetadata = ObjectMetadata.builder().build();
+    protected void putFileWithUserMetadata(String key, File file, Map<String, String> userMetadata) throws S3Exception, FileNotFoundException {
+        Map<String, String> objectMetadata = ObjectMetadata.builder().build();
         objectMetadata.userMetadata(userMetadata);
         PutObjectRequest putRequest = PutObjectRequest.builder().build();
 

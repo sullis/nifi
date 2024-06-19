@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
+import java.util.Map;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import org.apache.nifi.components.ValidationResult;
@@ -40,16 +40,16 @@ public interface S3EncryptionStrategy {
      * @param objectMetadata the request metadata to configure.
      * @param keyValue the key id or key material.
      */
-    default void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configurePutObjectRequest(PutObjectRequest request, Map<String, String> objectMetadata, String keyValue) {
     }
 
     /**
-     * Configure an {@link InitiateMultipartUploadRequest} for encryption.
+     * Configure an {@link CreateMultipartUploadRequest} for encryption.
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      * @param keyValue the key id or key material.
      */
-    default void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest request, Map<String, String> objectMetadata, String keyValue) {
     }
 
     /**
@@ -58,7 +58,7 @@ public interface S3EncryptionStrategy {
      * @param objectMetadata the request metadata to configure.
      * @param keyValue the key id or key material.
      */
-    default void configureGetObjectRequest(GetObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureGetObjectRequest(GetObjectRequest request, Map<String, String> objectMetadata, String keyValue) {
     }
 
     /**
@@ -67,14 +67,14 @@ public interface S3EncryptionStrategy {
      * @param objectMetadata the request metadata to configure.
      * @param keyValue the key id or key material.
      */
-    default void configureUploadPartRequest(UploadPartRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureUploadPartRequest(UploadPartRequest request, Map<String, String> objectMetadata, String keyValue) {
     }
 
     /**
      * Create an S3 encryption client.
      *
      */
-    default S3Client createEncryptionClient(final Consumer<S3Builder<?, ?>> clientBuilder, String kmsRegion, String keyIdOrMaterial) {
+    default S3Client createEncryptionClient(final Consumer<S3ClientBuilder> clientBuilder, String kmsRegion, String keyIdOrMaterial) {
         return null;
     }
 

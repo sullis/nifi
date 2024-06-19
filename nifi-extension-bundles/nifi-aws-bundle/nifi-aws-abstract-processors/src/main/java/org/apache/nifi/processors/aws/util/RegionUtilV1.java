@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.aws.util;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -25,7 +23,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import software.amazon.awssdk.regions.Region;
 
-import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -36,6 +33,7 @@ public final class RegionUtilV1 {
 
     private RegionUtilV1() { }
 
+    public static final Region DEFAULT_REGION = Region.US_EAST_1;
     public static final String S3_REGION_ATTRIBUTE = "s3.region";
     public static final AllowableValue ATTRIBUTE_DEFINED_REGION = new AllowableValue("attribute-defined-region",
             "Use '" + S3_REGION_ATTRIBUTE + "' Attribute",
@@ -46,7 +44,7 @@ public final class RegionUtilV1 {
             .description("The AWS Region to connect to.")
             .required(true)
             .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Region.DEFAULT_REGION).getValue())
+            .defaultValue(createAllowableValue(DEFAULT_REGION).getValue())
             .build();
 
     public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
@@ -70,11 +68,11 @@ public final class RegionUtilV1 {
     }
 
     public static AllowableValue createAllowableValue(final Region region) {
-        return new AllowableValue(region.id(), region.getDescription(), "AWS Region Code : " + region.id());
+        return new AllowableValue(region.id(), region.id(), "AWS Region Code : " + region.id());
     }
 
     public static AllowableValue[] getAvailableRegions() {
-        return Arrays.stream(Region.values())
+        return Region.regions().stream()
                 .map(RegionUtilV1::createAllowableValue)
                 .toArray(AllowableValue[]::new);
     }
@@ -85,7 +83,7 @@ public final class RegionUtilV1 {
         }
 
         try {
-            return RegionUtils.getRegion(regionValue);
+            return Region.of(regionValue);
         } catch (Exception e) {
             throw new ProcessException(String.format("The [%s] attribute contains an invalid region value [%s]", S3_REGION_ATTRIBUTE, regionValue), e);
         }

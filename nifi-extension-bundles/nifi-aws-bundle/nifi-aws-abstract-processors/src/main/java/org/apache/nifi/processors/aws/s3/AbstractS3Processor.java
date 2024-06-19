@@ -23,14 +23,12 @@ import com.amazonaws.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.AccessControlList;
-import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.CannedAccessControlList;
-import software.amazon.awssdk.services.s3.model.CanonicalGrantee;
-import software.amazon.awssdk.services.s3.model.EmailAddressGrantee;
 import software.amazon.awssdk.services.s3.model.Grantee;
 import software.amazon.awssdk.services.s3.model.Owner;
 import software.amazon.awssdk.services.s3.model.Permission;
@@ -215,7 +213,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         initializeSignerOverride(context, config);
         AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
 
-        final Consumer<S3Builder<?, ?>> clientBuilder = builder -> {
+        final Consumer<S3ClientBuilder> clientBuilder = builder -> {
             if (endpointConfiguration == null) {
                 builder.region(region.getName());
             } else {
@@ -323,11 +321,11 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             return null;
         }
 
+        Grantee.Builder builder = Grantee.builder();
         if (value.contains("@")) {
-            return EmailAddressGrantee.builder().build();
-        } else {
-            return CanonicalGrantee.builder().build();
+            return builder.emailAddress(value).build();
         }
+        return builder.xyz.build();
     }
 
     protected final List<Grantee> createGrantees(final String value) {
@@ -406,8 +404,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
 
     protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, FlowFile flowFile) {
         flowFile = session.putAttribute(flowFile, "s3.exception", e.getClass().getName());
-        if (e instanceof S3ExceptionClient) {
-            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((S3ExceptionClient) e).additionalDetails());
+        if (e instanceof S3Exception) {
+            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((S3Exception) e).additionalDetails());
         }
         if (e instanceof final AmazonServiceException ase) {
             flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());

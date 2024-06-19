@@ -18,7 +18,7 @@ package org.apache.nifi.processors.aws.s3.encryption;
 
 import com.amazonaws.regions.RegionUtils;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3EncryptionClientV2Client;
 import software.amazon.awssdk.services.s3.model.CryptoConfigurationV2;
 import software.amazon.awssdk.services.s3.S3EncryptionClientV2Builder;
@@ -44,7 +44,7 @@ public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
      * @return AWS S3 client
      */
     @Override
-    public S3Client createEncryptionClient(final Consumer<S3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
+    public S3Client createEncryptionClient(final Consumer<S3ClientBuilder> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
         final KMSEncryptionMaterialsProvider encryptionMaterialsProvider = KMSEncryptionMaterialsProvider.builder().build();
 
         final CryptoConfigurationV2 cryptoConfig = CryptoConfigurationV2.builder().build();

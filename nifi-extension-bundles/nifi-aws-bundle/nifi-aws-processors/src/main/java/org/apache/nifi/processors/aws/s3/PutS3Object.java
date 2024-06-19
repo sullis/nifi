@@ -24,7 +24,7 @@ import software.amazon.awssdk.services.s3.model.AccessControlList;
 import software.amazon.awssdk.services.s3.model.CannedAccessControlList;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadResponse;
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
 import software.amazon.awssdk.services.s3.model.MultipartUpload;
@@ -34,7 +34,7 @@ import software.amazon.awssdk.services.s3.model.ObjectTagging;
 import software.amazon.awssdk.services.s3.model.PartETag;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.StorageClass;
 import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
@@ -527,7 +527,7 @@ public class PutS3Object extends AbstractS3Processor {
             try (InputStream in = optFileResource
                     .map(FileResource::getInputStream)
                     .orElseGet(() -> session.read(flowFileCopy))) {
-                final ObjectMetadata objectMetadata = ObjectMetadata.builder().build();
+                final Map<String, String> objectMetadata = ObjectMetadata.builder().build();
                 objectMetadata.contentLength(optFileResource.map(FileResource::getSize).orElseGet(ff::getSize));
 
                 final String contentType = context.getProperty(CONTENT_TYPE)
@@ -691,9 +691,9 @@ public class PutS3Object extends AbstractS3Processor {
                     // initiate multipart upload or find position in file
                     //------------------------------------------------------------
                     if (currentState.getUploadId().isEmpty()) {
-                        final InitiateMultipartUploadRequest initiateRequest = InitiateMultipartUploadRequest.builder().build();
+                        final CreateMultipartUploadRequest initiateRequest = CreateMultipartUploadRequest.builder().build();
                         if (encryptionService != null) {
-                            encryptionService.configureInitiateMultipartUploadRequest(initiateRequest, objectMetadata);
+                            encryptionService.configureCreateMultipartUploadRequest(initiateRequest, objectMetadata);
                             attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
                         }
                         initiateRequest.storageClass(currentState.getStorageClass());
@@ -897,9 +897,9 @@ public class PutS3Object extends AbstractS3Processor {
                 ageoffLocalState(ageCutoff);
                 lastS3AgeOff.set(System.currentTimeMillis());
             } catch (AmazonClientException e) {
-                if (e instanceof S3ExceptionClient
-                        && ((S3ExceptionClient) e).statusCode() == 403
-                        && ((S3ExceptionClient) e).errorCode().equals("AccessDenied")) {
+                if (e instanceof S3Exception
+                        && ((S3Exception) e).statusCode() == 403
+                        && ((S3Exception) e).errorCode().equals("AccessDenied")) {
                     getLogger().warn("AccessDenied checking S3 Multipart Upload list for {}: {} " +
                             "** The configured user does not have the s3:ListBucketMultipartUploads permission " +
                             "for this bucket, S3 ageoff cannot occur without this permission.  Next ageoff check " +

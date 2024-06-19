@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
@@ -73,7 +73,7 @@ public class TestStandardS3EncryptionService {
     public void testRequests() {
         final ObjectMetadata metadata = ObjectMetadata.builder().build();
         final GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket("").key("").build();
-        final InitiateMultipartUploadRequest initUploadRequest = InitiateMultipartUploadRequest.builder().build();
+        final CreateMultipartUploadRequest initUploadRequest = CreateMultipartUploadRequest.builder().build();
         final PutObjectRequest putObjectRequest = PutObjectRequest.builder().build();
         final UploadPartRequest uploadPartRequest = UploadPartRequest.builder().build();
 
@@ -89,7 +89,7 @@ public class TestStandardS3EncryptionService {
         assertNull(putObjectRequest.sseCustomerKey());
         assertNull(metadata.sseAlgorithm());
 
-        service.configureInitiateMultipartUploadRequest(initUploadRequest, metadata);
+        service.configureCreateMultipartUploadRequest(initUploadRequest, metadata);
         assertNull(initUploadRequest.sseCustomerKey());
         assertNull(metadata.sseAlgorithm());
     }

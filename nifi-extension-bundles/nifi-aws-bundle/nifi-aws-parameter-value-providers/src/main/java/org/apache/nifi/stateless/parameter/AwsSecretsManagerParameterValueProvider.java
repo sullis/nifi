@@ -19,9 +19,10 @@ package org.apache.nifi.stateless.parameter;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
-import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerExceptionClient;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -102,7 +103,7 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
         } catch (final ResourceNotFoundException e) {
             logger.debug("Secret [{}] not found", secretName);
             return null;
-        } catch (final SecretsManagerExceptionClient e) {
+        } catch (final SecretsManagerException e) {
             logger.debug("Error retrieving secret [{}]", secretName);
             return null;
         }
@@ -143,7 +144,7 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
 
         if (isNotBlank(accessKey) && isNotBlank(secretKey) && isNotBlank(region)) {
             return SecretsManagerClient.builder()
-                    .region(region)
+                    .region(Region.of(region))
                     .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                     .build();
         } else {

@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import java.util.Map;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import org.apache.nifi.controller.ControllerService;
@@ -44,35 +44,35 @@ public interface AmazonS3EncryptionService extends ControllerService {
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      */
-    void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata);
+    void configurePutObjectRequest(PutObjectRequest request, Map<String, String> objectMetadata);
 
     /**
-     * Configure an {@link InitiateMultipartUploadRequest} for encryption.
+     * Configure an {@link CreateMultipartUploadRequest} for encryption.
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      */
-    void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata);
+    void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest request, Map<String, String> objectMetadata);
 
     /**
      * Configure a {@link GetObjectRequest} for encryption.
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      */
-    void configureGetObjectRequest(GetObjectRequest request, ObjectMetadata objectMetadata);
+    void configureGetObjectRequest(GetObjectRequest request, Map<String, String> objectMetadata);
 
     /**
      * Configure an {@link UploadPartRequest} for encryption.
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      */
-    void configureUploadPartRequest(UploadPartRequest request, ObjectMetadata objectMetadata);
+    void configureUploadPartRequest(UploadPartRequest request, Map<String, String> objectMetadata);
 
     /**
      * Create an S3 encryption client.
      *
      * @param clientBuilder a Consumer that is responsible for configuring the client builder
      */
-    S3Client createEncryptionClient(Consumer<S3Builder<?, ?>> clientBuilder);
+    S3Client createEncryptionClient(Consumer<S3ClientBuilder> clientBuilder);
 
     /**
      * @return The KMS region associated with the service, as a String.

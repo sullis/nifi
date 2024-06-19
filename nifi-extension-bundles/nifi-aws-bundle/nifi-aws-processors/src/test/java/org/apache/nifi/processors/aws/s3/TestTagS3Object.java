@@ -22,7 +22,7 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
-import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.SetObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.nifi.processor.ProcessContext;
@@ -255,7 +255,7 @@ public class TestTagS3Object {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.doThrow(S3ExceptionClient.builder().build()).when(mockS3Client).objectTagging(Mockito.any());
+        Mockito.doThrow(S3Exception.builder().build()).when(mockS3Client).objectTagging(Mockito.any());
 
         runner.run(1);
 

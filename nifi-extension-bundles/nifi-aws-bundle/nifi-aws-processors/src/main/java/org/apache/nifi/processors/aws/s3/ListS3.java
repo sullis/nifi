@@ -18,10 +18,10 @@ package org.apache.nifi.processors.aws.s3;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Client;
-import com.amazonaws.services.s3.internal.Constants;
-import software.amazon.awssdk.services.s3.model.GetObjectMetadataRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
@@ -539,7 +539,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
                     GetObjectTaggingResponse taggingResult = getTaggingResult(context, client, versionSummary);
 
-                    ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
+                    Map<String, String> objectMetadata = getObjectMetadata(context, client, versionSummary);
 
                     // Write the entity to the listing
                     writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
@@ -627,7 +627,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
                     // Write the entity to the listing
                     final GetObjectTaggingResponse taggingResult = getTaggingResult(context, client, versionSummary);
-                    final ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
+                    final Map<String, String> objectMetadata = getObjectMetadata(context, client, versionSummary);
                     writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
 
                     // Track the latest lastModified timestamp and keys having that timestamp.
@@ -751,7 +751,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
                     final S3Client s3Client = getClient(context);
                     final GetObjectTaggingResponse taggingResult = getTaggingResult(context, s3Client, s3VersionSummary);
-                    final ObjectMetadata objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
+                    final Map<String, String> objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
                     writer.addToListing(s3VersionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
 
                     listCount++;
@@ -788,11 +788,11 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         return taggingResult;
     }
 
-    private ObjectMetadata getObjectMetadata(ProcessContext context, S3Client client, S3VersionSummary versionSummary) {
-        ObjectMetadata objectMetadata = null;
+    private Map<String, String> getObjectMetadata(ProcessContext context, S3Client client, S3VersionSummary versionSummary) {
+        Map<String, String> objectMetadata = null;
         if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
             try {
-                objectMetadata = client.getObjectMetadata(GetObjectMetadataRequest.builder().build());
+                objectMetadata = client.headObject(HeadObjectRequest.builder().build()).metadata();
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain User Metadata for S3 Object {} in bucket {}. Will list S3 Object without the user metadata",
                         versionSummary.key(), versionSummary.bucketName(), e);
@@ -991,7 +991,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     interface S3ObjectWriter {
         void beginListing() throws IOException, SchemaNotFoundException;
 
-        void addToListing(S3VersionSummary summary, GetObjectTaggingResponse taggingResult, ObjectMetadata objectMetadata, String region) throws IOException;
+        void addToListing(S3VersionSummary summary, GetObjectTaggingResponse taggingResult, Map<String, String> objectMetadata, String region) throws IOException;
 
         void finishListing() throws IOException;
 
@@ -1056,7 +1056,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final S3VersionSummary summary, final GetObjectTaggingResponse taggingResult, final ObjectMetadata objectMetadata, String region) throws IOException {
+        public void addToListing(final S3VersionSummary summary, final GetObjectTaggingResponse taggingResult, final Map<String, String> objectMetadata, String region) throws IOException {
             recordWriter.write(createRecordForListing(summary, taggingResult, objectMetadata));
         }
 
@@ -1093,7 +1093,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return false;
         }
 
-        private Record createRecordForListing(final S3VersionSummary versionSummary, final GetObjectTaggingResponse taggingResult, final ObjectMetadata objectMetadata) {
+        private Record createRecordForListing(final S3VersionSummary versionSummary, final GetObjectTaggingResponse taggingResult, final Map<String, String> objectMetadata) {
             final Map<String, Object> values = new HashMap<>();
             values.put(KEY, versionSummary.key());
             values.put(BUCKET, versionSummary.bucketName());
@@ -1141,7 +1141,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final S3VersionSummary versionSummary, final GetObjectTaggingResponse taggingResult, final ObjectMetadata objectMetadata, final String region) {
+        public void addToListing(final S3VersionSummary versionSummary, final GetObjectTaggingResponse taggingResult, final Map<String, String> objectMetadata, final String region) {
             // Create the attributes
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), versionSummary.key());

@@ -23,7 +23,7 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
-import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerExceptionClient;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
@@ -96,7 +96,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .displayName("Region")
             .required(true)
             .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Region.DEFAULT_REGION).getValue())
+            .defaultValue(createAllowableValue(Region.US_EAST_1).getValue())
             .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
@@ -225,7 +225,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             return groups;
         } catch (final ResourceNotFoundException e) {
             throw new IllegalStateException(String.format("Secret %s not found", secretName), e);
-        } catch (final SecretsManagerExceptionClient e) {
+        } catch (final SecretsManagerException e) {
             throw new IllegalStateException("Error retrieving secret " + secretName, e);
         }
     }
@@ -236,7 +236,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     }
 
     protected ClientOverrideConfiguration createConfiguration(final ConfigurationContext context) {
-        final ClientOverrideConfiguration config = ClientOverrideConfiguration.builder().build();
+        final ClientOverrideConfiguration.Builder config = ClientOverrideConfiguration.builder();
         config.maxErrorRetry(0);
         config/*AWS SDK for Java v2 migration: userAgentPrefix override is a request-level config in v2. See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/core/RequestOverrideConfiguration.Builder.html#addApiName(software.amazon.awssdk.core.ApiName).*/.userAgentPrefix(DEFAULT_USER_AGENT);
         config.protocol(DEFAULT_PROTOCOL);
@@ -251,7 +251,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             config.getApacheHttpClientConfig().sslSocketFactory(sdkTLSSocketFactory);
         }
 
-        return config;
+        return config.build();
     }
 
     private ObjectNode parseSecret(final String secretString) {
@@ -269,7 +269,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     SecretsManagerClient configureClient(final ConfigurationContext context) {
         return SecretsManagerClient.builder()
-                .region(context.getProperty(REGION).getValue())
+                .region(Region.of(context.getProperty(REGION).getValue()))
                 .overrideConfiguration(createConfiguration(context))
                 .credentialsProvider(getCredentialsProvider(context))
                 .build();
@@ -291,12 +291,12 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     }
 
     private static AllowableValue createAllowableValue(final Region region) {
-        return new AllowableValue(region.id(), region.getDescription(), "AWS Region Code : " + region.id());
+        return new AllowableValue(region.id(), region.id(), "AWS Region Code : " + region.id());
     }
 
     private static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
-        for (final Region region : Region.values()) {
+        for (final Region region : Region.regions()) {
             values.add(createAllowableValue(region));
         }
         return values.toArray(new AllowableValue[0]);

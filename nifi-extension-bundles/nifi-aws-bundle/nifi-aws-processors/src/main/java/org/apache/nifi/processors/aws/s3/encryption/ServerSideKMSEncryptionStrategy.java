@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.SSEAwsKeyManagementParams;
@@ -30,13 +30,13 @@ import software.amazon.awssdk.services.s3.model.SSEAwsKeyManagementParams;
  */
 public class ServerSideKMSEncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    public void configurePutObjectRequest(PutObjectRequest request, Map<String, String> objectMetadata, String keyValue) {
         SSEAwsKeyManagementParams keyParams = SSEAwsKeyManagementParams.builder().build();
         request.sseAwsKeyManagementParams(keyParams);
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest request, Map<String, String> objectMetadata, String keyValue) {
         SSEAwsKeyManagementParams keyParams = SSEAwsKeyManagementParams.builder().build();
         request.sseAwsKeyManagementParams(keyParams);
     }

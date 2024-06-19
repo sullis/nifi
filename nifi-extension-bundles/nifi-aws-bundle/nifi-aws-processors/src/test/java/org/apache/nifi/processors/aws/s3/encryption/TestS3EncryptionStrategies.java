@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.aws.s3.encryption;
+
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
@@ -34,14 +35,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestS3EncryptionStrategies {
 
-    private static final String REGION = Region.DEFAULT_REGION.id();
+    private static final Region REGION = Region.US_EAST_1;
     private static final String KEY_ID = "key-id";
 
     private String randomKeyMaterial = "";
 
     private ObjectMetadata metadata = null;
     private PutObjectRequest putObjectRequest = null;
-    private InitiateMultipartUploadRequest initUploadRequest = null;
+    private CreateMultipartUploadRequest initUploadRequest = null;
     private GetObjectRequest getObjectRequest = null;
     private UploadPartRequest uploadPartRequest = null;
 
@@ -54,7 +55,7 @@ public class TestS3EncryptionStrategies {
 
         metadata = ObjectMetadata.builder().build();
         putObjectRequest = PutObjectRequest.builder().build();
-        initUploadRequest = InitiateMultipartUploadRequest.builder().build();
+        initUploadRequest = CreateMultipartUploadRequest.builder().build();
         getObjectRequest = GetObjectRequest.builder().bucket("").key("").build();
         uploadPartRequest = UploadPartRequest.builder().build();
     }
@@ -65,7 +66,7 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy builds a client:
         assertNotNull(strategy.createEncryptionClient(builder -> {
-            builder.withRegion(REGION);
+            builder.region(REGION);
         }, null, randomKeyMaterial));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
@@ -87,7 +88,7 @@ public class TestS3EncryptionStrategies {
 
         // This shows that the strategy builds a client:
         assertNotNull(strategy.createEncryptionClient(builder -> {
-            builder.withRegion(REGION);
+            builder.region(REGION);
         }, REGION, KEY_ID));
 
         // This shows that the strategy does not modify the metadata or any of the requests:
@@ -116,8 +117,8 @@ public class TestS3EncryptionStrategies {
         assertNull(putObjectRequest.sseAwsKeyManagementParams());
         assertNull(metadata.sseAlgorithm());
 
-        // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, randomKeyMaterial);
+        // Same for CreateMultipartUploadRequest:
+        strategy.configureCreateMultipartUploadRequest(initUploadRequest, metadata, randomKeyMaterial);
         assertEquals(randomKeyMaterial, initUploadRequest.sseCustomerKey().key());
         assertNull(initUploadRequest.sseAwsKeyManagementParams());
         assertNull(metadata.sseAlgorithm());
@@ -146,8 +147,8 @@ public class TestS3EncryptionStrategies {
         assertNull(putObjectRequest.sseCustomerKey());
         assertNull(metadata.sseAlgorithm());
 
-        // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, KEY_ID);
+        // Same for CreateMultipartUploadRequest:
+        strategy.configureCreateMultipartUploadRequest(initUploadRequest, metadata, KEY_ID);
         assertEquals(KEY_ID, initUploadRequest.sseAwsKeyManagementParams().awsKmsKeyId());
         assertNull(initUploadRequest.sseCustomerKey());
         assertNull(metadata.sseAlgorithm());
@@ -164,8 +165,8 @@ public class TestS3EncryptionStrategies {
         strategy.configurePutObjectRequest(putObjectRequest, metadata, null);
         assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.sseAlgorithm());
 
-        // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, null);
+        // Same for CreateMultipartUploadRequest:
+        strategy.configureCreateMultipartUploadRequest(initUploadRequest, metadata, null);
         assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.sseAlgorithm());
     }
 

@@ -18,7 +18,7 @@ package org.apache.nifi.parameter.aws;
 
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.SecretListEntry;
-import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerExceptionClient;
+import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.ListSecretsRequest;
@@ -100,7 +100,7 @@ public class TestAwsSecretsManagerParameterProvider {
 
     @Test
     public void testFetchParametersListFailure() throws InitializationException {
-        when(defaultSecretsManager.listSecrets(any())).thenThrow(SecretsManagerExceptionClient.builder().build());
+        when(defaultSecretsManager.listSecrets(any())).thenThrow(SecretsManagerException.builder().build());
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 
@@ -110,7 +110,7 @@ public class TestAwsSecretsManagerParameterProvider {
         final ListSecretsResponse listSecretsResult = mock(ListSecretsResponse.class);
         when(listSecretsResult.secretList()).thenReturn(secretList);
         when(defaultSecretsManager.listSecrets(argThat(ListSecretsRequestMatcher.hasToken(null)))).thenReturn(listSecretsResult);
-        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(SecretsManagerExceptionClient.builder().build());
+        when(defaultSecretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MySecret")))).thenThrow(SecretsManagerException.builder().build());
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 

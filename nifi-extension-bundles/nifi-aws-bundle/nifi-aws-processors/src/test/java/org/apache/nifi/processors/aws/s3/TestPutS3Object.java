@@ -27,7 +27,7 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import com.amazonaws.services.s3.internal.AWSS3V4Signer;
-import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.StorageClass;
 import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
 import software.amazon.awssdk.services.s3.model.MultipartUploadListing;
@@ -151,7 +151,7 @@ public class TestPutS3Object {
     public void testPutSinglePartException() {
         prepareTest();
 
-        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenThrow(S3ExceptionClient.builder().build());
+        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenThrow(S3Exception.builder().build());
 
         runner.run(1);
 
@@ -226,7 +226,7 @@ public class TestPutS3Object {
         verify(mockS3Client, Mockito.times(1)).putObject(captureRequest.capture());
         PutObjectRequest request = captureRequest.getValue();
 
-        ObjectMetadata objectMetadata = request.metadata();
+        Map<String, String> objectMetadata = request.metadata();
         assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", UTF_8), objectMetadata.contentDisposition());
     }
 

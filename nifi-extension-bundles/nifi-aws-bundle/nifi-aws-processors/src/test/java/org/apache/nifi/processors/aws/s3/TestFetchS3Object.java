@@ -23,7 +23,7 @@ import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ObjectMetadata;
-import software.amazon.awssdk.services.s3.model.S3ExceptionClient;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import com.amazonaws.util.StringInputStream;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -111,7 +111,7 @@ public class TestFetchS3Object {
         when(mockS3Client.getObject(Mockito.any())).thenReturn(s3ObjectResponse);
 
         final long mockSize = 20L;
-        final ObjectMetadata objectMetadata = mock(ObjectMetadata.class);
+        final Map<String, String> objectMetadata = mock(ObjectMetadata.class);
         when(objectMetadata.contentLength()).thenReturn(mockSize);
         when(mockS3Client.getObjectMetadata(any())).thenReturn(objectMetadata);
 
@@ -253,7 +253,7 @@ public class TestFetchS3Object {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.doThrow(S3ExceptionClient.builder().build()).when(mockS3Client).getObject(Mockito.any());
+        Mockito.doThrow(S3Exception.builder().build()).when(mockS3Client).getObject(Mockito.any());
 
         runner.run(1);
 
@@ -268,7 +268,7 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        final S3ExceptionClient exception = S3ExceptionClient.builder().build();
+        final S3Exception exception = S3Exception.builder().build();
 
         final Map<String, String> details = new LinkedHashMap<>();
         details.put("BucketName", "us-east-1");
@@ -297,7 +297,7 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        final S3ExceptionClient exception = S3ExceptionClient.builder().build();
+        final S3Exception exception = S3Exception.builder().build();
         exception.additionalDetails(Collections.singletonMap("CanonicalRequestBytes", "AA BB CC DD EE FF"));
         exception.errorCode("SignatureDoesNotMatch");
         exception.statusCode(HttpURLConnection.HTTP_FORBIDDEN);
@@ -353,7 +353,7 @@ public class TestFetchS3Object {
         attrs.put("filename", "request-key");
         runner.enqueue(new byte[0], attrs);
 
-        S3ExceptionClient amazonException = S3ExceptionClient.builder().build();
+        S3Exception amazonException = S3Exception.builder().build();
         Mockito.doThrow(new FlowFileAccessException("testing nested", amazonException)).when(mockS3Client).getObject(Mockito.any());
 
         runner.run(1);

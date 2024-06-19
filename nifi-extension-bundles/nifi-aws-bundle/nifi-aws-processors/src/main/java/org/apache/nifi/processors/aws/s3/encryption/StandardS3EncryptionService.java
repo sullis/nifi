@@ -18,9 +18,9 @@ package org.apache.nifi.processors.aws.s3.encryption;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Builder;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.InitiateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
@@ -109,7 +109,7 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
             .required(false)
             .allowableValues(RegionUtilV1.getAvailableRegions())
-            .defaultValue(RegionUtilV1.createAllowableValue(Region.DEFAULT_REGION).getValue())
+            .defaultValue(RegionUtilV1.createAllowableValue(Region.US_EAST_1).getValue())
             .build();
 
     private String keyValue = "";
@@ -199,27 +199,27 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata) {
+    public void configurePutObjectRequest(PutObjectRequest request, Map<String, String> objectMetadata) {
         encryptionStrategy.configurePutObjectRequest(request, objectMetadata, keyValue);
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata) {
-        encryptionStrategy.configureInitiateMultipartUploadRequest(request, objectMetadata, keyValue);
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest request, Map<String, String> objectMetadata) {
+        encryptionStrategy.configureCreateMultipartUploadRequest(request, objectMetadata, keyValue);
     }
 
     @Override
-    public void configureGetObjectRequest(GetObjectRequest request, ObjectMetadata objectMetadata) {
+    public void configureGetObjectRequest(GetObjectRequest request, Map<String, String> objectMetadata) {
         encryptionStrategy.configureGetObjectRequest(request, objectMetadata, keyValue);
     }
 
     @Override
-    public void configureUploadPartRequest(UploadPartRequest request, ObjectMetadata objectMetadata) {
+    public void configureUploadPartRequest(UploadPartRequest request, Map<String, String> objectMetadata) {
         encryptionStrategy.configureUploadPartRequest(request, objectMetadata, keyValue);
     }
 
     @Override
-    public S3Client createEncryptionClient(final Consumer<S3Builder<?, ?>> clientBuilder) {
+    public S3Client createEncryptionClient(final Consumer<S3ClientBuilder> clientBuilder) {
         return encryptionStrategy.createEncryptionClient(clientBuilder, kmsRegion, keyValue);
     }
 
