@@ -137,8 +137,8 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
         SecretsManagerClient secretsManager = this.configureClient(context);
 
         final List<ParameterGroup> groups = new ArrayList<>();
-        ListSecretsRequest listSecretsRequest = ListSecretsRequest.builder().build();
-        ListSecretsResponse listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+        ListSecretsRequest.Builder listSecretsRequest = ListSecretsRequest.builder();
+        ListSecretsResponse listSecretsResult = secretsManager.listSecrets(listSecretsRequest.build());
         while (!listSecretsResult.secretList().isEmpty()) {
             for (final SecretListEntry entry : listSecretsResult.secretList()) {
                 groups.addAll(fetchSecret(secretsManager, context, entry.name()));
@@ -149,7 +149,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             }
 
             listSecretsRequest.nextToken(nextToken);
-            listSecretsResult = secretsManager.listSecrets(listSecretsRequest);
+            listSecretsResult = secretsManager.listSecrets(listSecretsRequest.build());
         }
 
         return groups;
