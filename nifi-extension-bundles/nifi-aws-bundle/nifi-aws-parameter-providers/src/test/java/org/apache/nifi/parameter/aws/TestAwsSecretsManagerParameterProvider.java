@@ -100,7 +100,7 @@ public class TestAwsSecretsManagerParameterProvider {
 
     @Test
     public void testFetchParametersListFailure() throws InitializationException {
-        when(defaultSecretsManager.listSecrets(any())).thenThrow(SecretsManagerException.builder().build());
+        when(defaultSecretsManager.listSecrets(any(ListSecretsRequest.class))).thenThrow(SecretsManagerException.builder().build());
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED);
     }
 

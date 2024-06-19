@@ -237,18 +237,18 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
     protected ClientOverrideConfiguration createConfiguration(final ConfigurationContext context) {
         final ClientOverrideConfiguration.Builder config = ClientOverrideConfiguration.builder();
-        config.maxErrorRetry(0);
-        config/*AWS SDK for Java v2 migration: userAgentPrefix override is a request-level config in v2. See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/core/RequestOverrideConfiguration.Builder.html#addApiName(software.amazon.awssdk.core.ApiName).*/.userAgentPrefix(DEFAULT_USER_AGENT);
-        config.protocol(DEFAULT_PROTOCOL);
+        // fixme config.maxErrorRetry(0);
+        // fixme config/*AWS SDK for Java v2 migration: userAgentPrefix override is a request-level config in v2. See https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/core/RequestOverrideConfiguration.Builder.html#addApiName(software.amazon.awssdk.core.ApiName).*/.userAgentPrefix(DEFAULT_USER_AGENT);
+        // fixme config.protocol(DEFAULT_PROTOCOL);
         final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        config.connectionTimeout(commsTimeout);
-        config.socketTimeout(commsTimeout);
+        // fixme config.connectionTimeout(commsTimeout);
+        // fixme config.socketTimeout(commsTimeout);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final SSLContext sslContext = sslContextService.createContext();
             SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-            config.getApacheHttpClientConfig().sslSocketFactory(sdkTLSSocketFactory);
+            // fixme config.getApacheHttpClientConfig().sslSocketFactory(sdkTLSSocketFactory);
         }
 
         return config.build();
