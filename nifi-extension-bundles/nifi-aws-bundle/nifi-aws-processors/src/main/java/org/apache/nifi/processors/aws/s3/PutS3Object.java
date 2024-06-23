@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonClientException;
+// import com.amazonaws.AmazonClientException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
@@ -181,7 +182,7 @@ public class PutS3Object extends AbstractS3Processor {
             .name("Storage Class")
             .required(true)
             .allowableValues(STORAGE_CLASSES)
-            .defaultValue(StorageClass.Standard.name())
+            .defaultValue(StorageClass.STANDARD.name())
             .build();
 
     public static final PropertyDescriptor MULTIPART_THRESHOLD = new PropertyDescriptor.Builder()
@@ -625,7 +626,7 @@ public class PutS3Object extends AbstractS3Processor {
                         if (result.metadata().storageClass() != null) {
                             attributes.put(S3_STORAGECLASS_ATTR_KEY, result.metadata().storageClass());
                         } else {
-                            attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.Standard.toString());
+                            attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.STANDARD.toString());
                         }
                         if (userMetadata.size() > 0) {
                             StringBuilder userMetaBldr = new StringBuilder();
@@ -635,7 +636,7 @@ public class PutS3Object extends AbstractS3Processor {
                             attributes.put(S3_USERMETA_ATTR_KEY, userMetaBldr.toString());
                         }
                         attributes.put(S3_API_METHOD_ATTR_KEY, S3_API_METHOD_PUTOBJECT);
-                    } catch (AmazonClientException e) {
+                    } catch (SdkClientException e) {
                         getLogger().info("Failure completing upload flowfile={} bucket={} key={} reason={}",
                                 ffFilename, bucket, key, e.getMessage());
                         throw (e);
@@ -961,7 +962,7 @@ public class PutS3Object extends AbstractS3Processor {
 
         private String uploadId;
         private Long filePosition;
-        private List<PartETag> partETags;
+        private List<String> partETags;
         private Long partSize;
         private StorageClass storageClass;
         private Long contentLength;
@@ -972,7 +973,7 @@ public class PutS3Object extends AbstractS3Processor {
             filePosition = 0L;
             partETags = new ArrayList<>();
             partSize = 0L;
-            storageClass = StorageClass.Standard;
+            storageClass = StorageClass.STANDARD;
             contentLength = 0L;
             timestamp = System.currentTimeMillis();
         }
@@ -1011,11 +1012,11 @@ public class PutS3Object extends AbstractS3Processor {
             filePosition = pos;
         }
 
-        public List<PartETag> getPartETags() {
+        public List<String> getPartETags() {
             return partETags;
         }
 
-        public void addPartETag(PartETag tag) {
+        public void addPartETag(String tag) {
             partETags.add(tag);
         }
 

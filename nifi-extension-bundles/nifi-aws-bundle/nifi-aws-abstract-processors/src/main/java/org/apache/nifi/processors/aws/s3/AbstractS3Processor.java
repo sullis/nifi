@@ -28,7 +28,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.AccessControlList;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-import software.amazon.awssdk.services.s3.model.CannedAccessControlList;
+import software.amazon.awssdk.services.s3.model.BucketCannedACL;
 import software.amazon.awssdk.services.s3.model.Grantee;
 import software.amazon.awssdk.services.s3.model.Owner;
 import software.amazon.awssdk.services.s3.model.Permission;
@@ -426,12 +426,12 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @param flowFile FlowFile
      * @return CannedAccessControlList or null if not specified
      */
-    protected final CannedAccessControlList createCannedACL(final ProcessContext context, final FlowFile flowFile) {
-        CannedAccessControlList cannedAcl = null;
+    protected final BucketCannedACL createCannedACL(final ProcessContext context, final FlowFile flowFile) {
+        BucketCannedACL cannedAcl = null;
 
         final String cannedAclString = context.getProperty(CANNED_ACL).evaluateAttributeExpressions(flowFile).getValue();
         if (!StringUtils.isEmpty(cannedAclString)) {
-            cannedAcl = CannedAccessControlList.valueOf(cannedAclString);
+            cannedAcl = BucketCannedACL.valueOf(cannedAclString);
         }
 
         return cannedAcl;

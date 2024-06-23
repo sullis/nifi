@@ -45,7 +45,6 @@ import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.client.builder.SdkClientBuilder;
 import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
-import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.regions.Region;
@@ -60,6 +59,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import software.amazon.awssdk.retries.DefaultRetryStrategy;
+import software.amazon.awssdk.retries.api.RetryStrategy;
+
 
 /**
  * Base class for aws processors using the AWS v2 SDK.
@@ -85,7 +87,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
     private static final String AUTH_SERVICE_SECRET_KEY = "Secret Key";
     private static final String AUTH_SERVICE_CREDENTIALS_FILE = "Credentials File";
     private static final String AUTH_SERVICE_ANONYMOUS_CREDENTIALS = "anonymous-credentials";
-
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -271,7 +272,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
     protected <C extends SdkClient, B extends AwsClientBuilder<B, C>>
     void configureClientBuilder(final B clientBuilder, final Region region, final ProcessContext context, final PropertyDescriptor endpointOverrideDescriptor) {
         clientBuilder.overrideConfiguration(builder -> builder.putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, DEFAULT_USER_AGENT));
-        clientBuilder.overrideConfiguration(builder -> builder.retryPolicy(RetryPolicy.none()));
+        clientBuilder.overrideConfiguration(builder -> builder.retryStrategy(DefaultRetryStrategy.doNotRetry()));
         this.configureHttpClient(clientBuilder, context);
 
         if (region != null) {

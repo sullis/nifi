@@ -1,9 +1,10 @@
 package org.apache.nifi.processors.aws.wag.client;
 
-import com.amazonaws.http.AmazonHttpClient;
-import com.amazonaws.regions.Region;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.regions.Region;
+
 
 public class GenericApiGatewayClientBuilder {
     private String endpoint;
@@ -11,7 +12,7 @@ public class GenericApiGatewayClientBuilder {
     private AwsCredentialsProvider credentials;
     private ClientOverrideConfiguration clientConfiguration;
     private String apiKey;
-    private AmazonHttpClient httpClient;
+    private SdkHttpClient httpClient;
 
     public GenericApiGatewayClientBuilder withEndpoint(String endpoint) {
         this.endpoint = endpoint;
@@ -38,7 +39,7 @@ public class GenericApiGatewayClientBuilder {
         return this;
     }
 
-    public GenericApiGatewayClientBuilder withHttpClient(AmazonHttpClient client) {
+    public GenericApiGatewayClientBuilder withHttpClient(SdkHttpClient client) {
         this.httpClient = client;
         return this;
     }
@@ -51,7 +52,7 @@ public class GenericApiGatewayClientBuilder {
         return apiKey;
     }
 
-    public AmazonHttpClient getHttpClient() {
+    public SdkHttpClient getHttpClient() {
         return httpClient;
     }
 

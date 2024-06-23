@@ -1,24 +1,25 @@
 package org.apache.nifi.processors.aws.wag.client;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.AmazonWebServiceClient;
-import com.amazonaws.AmazonWebServiceResponse;
-import com.amazonaws.DefaultRequest;
-import com.amazonaws.Response;
-import com.amazonaws.auth.AWS4Signer;
-import com.amazonaws.http.AmazonHttpClient;
-import com.amazonaws.http.ExecutionContext;
-import com.amazonaws.http.HttpMethodName;
-import com.amazonaws.http.HttpResponseHandler;
-import com.amazonaws.http.JsonResponseHandler;
-import com.amazonaws.internal.auth.DefaultSignerProvider;
-import com.amazonaws.protocol.json.JsonErrorResponseMetadata;
-import com.amazonaws.protocol.json.JsonOperationMetadata;
-import com.amazonaws.protocol.json.SdkStructuredPlainJsonFactory;
-import com.amazonaws.regions.Region;
-import com.amazonaws.transform.JsonErrorUnmarshaller;
-import com.amazonaws.transform.JsonUnmarshallerContext;
-import com.amazonaws.transform.Unmarshaller;
+// import com.amazonaws.AmazonWebServiceClient;
+// import com.amazonaws.AmazonWebServiceResponse;
+// import com.amazonaws.DefaultRequest;
+//  import com.amazonaws.Response;
+// import com.amazonaws.auth.AWS4Signer;
+// import com.amazonaws.http.AmazonHttpClient;
+// import com.amazonaws.http.ExecutionContext;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.SdkHttpMethod;
+// import com.amazonaws.http.HttpResponseHandler;
+// import com.amazonaws.http.JsonResponseHandler;
+// import com.amazonaws.internal.auth.DefaultSignerProvider;
+// import com.amazonaws.protocol.json.JsonErrorResponseMetadata;
+// import com.amazonaws.protocol.json.JsonOperationMetadata;
+// import com.amazonaws.protocol.json.SdkStructuredPlainJsonFactory;
+// import com.amazonaws.regions.Region;
+// import com.amazonaws.transform.JsonErrorUnmarshaller;
+// import com.amazonaws.transform.JsonUnmarshallerContext;
+// import com.amazonaws.transform.Unmarshaller;
 import com.fasterxml.jackson.databind.JsonNode;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
@@ -28,29 +29,32 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import software.amazon.awssdk.http.auth.aws.signer.AwsV4HttpSigner;
+import software.amazon.awssdk.regions.Region;
+
 
 public class GenericApiGatewayClient extends AmazonWebServiceClient {
     private static final String API_GATEWAY_SERVICE_NAME = "execute-api";
     private static final String API_KEY_HEADER = "x-api-key";
 
     private final JsonResponseHandler<GenericApiGatewayResponse> responseHandler;
-    private final HttpResponseHandler<AmazonServiceException> errorResponseHandler;
+    private final HttpResponseHandler<AwsServiceException> errorResponseHandler;
     private final AwsCredentialsProvider credentials;
     private final String apiKey;
-    private final AWS4Signer signer;
+    private final AwsV4HttpSigner signer;
     private final URI endpoint;
     private final String region;
 
     GenericApiGatewayClient(ClientOverrideConfiguration clientConfiguration, String endpoint, Region region,
-                            AwsCredentialsProvider credentials, String apiKey, AmazonHttpClient httpClient) {
+                            AwsCredentialsProvider credentials, String apiKey, SdkHttpClient httpClient) {
         super(clientConfiguration);
         this.endpoint = URI.create(endpoint);
-        this.region = region.getName();
+        this.region = region.id();
         this.credentials = credentials;
         this.apiKey = apiKey;
-        this.signer = new AWS4Signer();
+        this.signer = AwsV4HttpSigner.create();
         this.signer.setServiceName(API_GATEWAY_SERVICE_NAME);
-        this.signer.setRegionName(region.getName());
+        this.signer.setRegionName(region.id());
 
         final JsonOperationMetadata metadata = new JsonOperationMetadata().withHasStreamingSuccessResponse(false).withPayloadJson(false);
         final Unmarshaller<GenericApiGatewayResponse, JsonUnmarshallerContext> responseUnmarshaller = in -> new GenericApiGatewayResponse(in.getHttpResponse());
@@ -59,7 +63,7 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
         final JsonErrorResponseMetadata errorResponseMetadata = new JsonErrorResponseMetadata();
         final JsonErrorUnmarshaller defaultErrorUnmarshaller = new JsonErrorUnmarshaller(GenericApiGatewayException.class, null) {
             @Override
-            public AmazonServiceException unmarshall(final JsonNode jsonContent) {
+            public AwsServiceException unmarshall(final JsonNode jsonContent) {
                 return new GenericApiGatewayException(jsonContent.toString());
             }
         };
@@ -75,7 +79,7 @@ public class GenericApiGatewayClient extends AmazonWebServiceClient {
         return execute(request.getHttpMethod(), request.getResourcePath(), request.getHeaders(), request.getParameters(), request.getBody());
     }
 
-    private GenericApiGatewayResponse execute(HttpMethodName method, String resourcePath, Map<String, String> headers, Map<String, List<String>> parameters, InputStream content) {
+    private GenericApiGatewayResponse execute(SdkHttpMethod method, String resourcePath, Map<String, String> headers, Map<String, List<String>> parameters, InputStream content) {
         final ExecutionContext executionContext = buildExecutionContext();
 
         DefaultRequest<?> request = new DefaultRequest<>(API_GATEWAY_SERVICE_NAME);

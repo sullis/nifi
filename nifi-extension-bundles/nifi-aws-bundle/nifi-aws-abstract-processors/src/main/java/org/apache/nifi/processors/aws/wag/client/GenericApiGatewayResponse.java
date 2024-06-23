@@ -1,23 +1,23 @@
 package org.apache.nifi.processors.aws.wag.client;
 
-import com.amazonaws.http.HttpResponse;
-import com.amazonaws.util.IOUtils;
 import java.io.IOException;
+import software.amazon.awssdk.utils.IoUtils;
+import software.amazon.awssdk.http.SdkHttpResponse;
 
 public class GenericApiGatewayResponse {
-    private final HttpResponse httpResponse;
+    private final SdkHttpResponse httpResponse;
     private final String body;
 
-    public GenericApiGatewayResponse(HttpResponse httpResponse) throws IOException {
+    public GenericApiGatewayResponse(SdkHttpResponse httpResponse) throws IOException {
         this.httpResponse = httpResponse;
         if (httpResponse.getContent() != null) {
-            this.body = IOUtils.toString(httpResponse.getContent());
+            this.body = IoUtils.toString(httpResponse.getContent());
         } else {
             this.body = null;
         }
     }
 
-    public HttpResponse getHttpResponse() {
+    public SdkHttpResponse getHttpResponse() {
         return httpResponse;
     }
 
