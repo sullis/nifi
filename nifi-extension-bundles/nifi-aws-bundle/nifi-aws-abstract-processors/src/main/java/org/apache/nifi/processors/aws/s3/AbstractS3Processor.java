@@ -368,35 +368,35 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             if (acl == null) {
                 acl = AccessControlList.builder().build();
             }
-            acl.grantPermission(grantee, Permission.FullControl);
+            acl.grantPermission(grantee, Permission.FULL_CONTROL);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(READ_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
                 acl = AccessControlList.builder().build();
             }
-            acl.grantPermission(grantee, Permission.Read);
+            acl.grantPermission(grantee, Permission.READ);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(WRITE_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
                 acl = AccessControlList.builder().build();
             }
-            acl.grantPermission(grantee, Permission.Write);
+            acl.grantPermission(grantee, Permission.WRITE);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(READ_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
                 acl = AccessControlList.builder().build();
             }
-            acl.grantPermission(grantee, Permission.ReadAcp);
+            acl.grantPermission(grantee, Permission.READ_ACP);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(WRITE_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             if (acl == null) {
                 acl = AccessControlList.builder().build();
             }
-            acl.grantPermission(grantee, Permission.WriteAcp);
+            acl.grantPermission(grantee, Permission.WRITE_ACP);
         }
 
         return acl;
