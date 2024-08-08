@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.controller.ControllerService;
 
 import java.util.function.Consumer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+
 
 /**
  * This interface defines how clients interact with an S3 encryption service.
@@ -47,11 +47,11 @@ public interface AmazonS3EncryptionService extends ControllerService {
     void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata);
 
     /**
-     * Configure an {@link InitiateMultipartUploadRequest} for encryption.
+     * Configure an {@link CreateMultipartUploadRequest} for encryption.
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      */
-    void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata);
+    void configureInitiateMultipartUploadRequest(CreateMultipartUploadRequest request, ObjectMetadata objectMetadata);
 
     /**
      * Configure a {@link GetObjectRequest} for encryption.
@@ -72,7 +72,7 @@ public interface AmazonS3EncryptionService extends ControllerService {
      *
      * @param clientBuilder a Consumer that is responsible for configuring the client builder
      */
-    AmazonS3 createEncryptionClient(Consumer<AmazonS3Builder<?, ?>> clientBuilder);
+    S3AsyncClient createEncryptionClient(Consumer<S3AsyncClientBuilder> clientBuilder);
 
     /**
      * @return The KMS region associated with the service, as a String.

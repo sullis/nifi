@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.Signer;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CanonicalGrantee;
-import com.amazonaws.services.s3.model.EmailAddressGrantee;
-import com.amazonaws.services.s3.model.Grantee;
-import com.amazonaws.services.s3.model.Owner;
-import com.amazonaws.services.s3.model.Permission;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -57,6 +39,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
@@ -66,7 +50,7 @@ import static org.apache.nifi.processors.aws.util.RegionUtilV1.ATTRIBUTE_DEFINED
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
 
-public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
+public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<S3AsyncClient> {
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
@@ -209,13 +193,13 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region,
+    protected S3AsyncClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region,
                                           final ClientConfiguration config, final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
         getLogger().info("Creating client with credentials provider");
         initializeSignerOverride(context, config);
         AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
 
-        final Consumer<AmazonS3Builder<?, ?>> clientBuilder = builder -> {
+        final Consumer<S3AsyncClientBuilder<?, ?>> clientBuilder = builder -> {
             if (endpointConfiguration == null) {
                 builder.withRegion(region.getName());
             } else {
@@ -236,7 +220,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             }
         };
 
-        AmazonS3 s3Client = null;
+        S3AsyncClient s3Client = null;
         if (encryptionService != null) {
             s3Client = encryptionService.createEncryptionClient(clientBuilder);
         }
@@ -279,7 +263,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @param attributes FlowFile attributes
      * @return The created S3 client
      */
-    protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
+    protected S3AsyncClient getS3Client(final ProcessContext context, final Map<String, String> attributes) {
         final Region region = resolveS3Region(context, attributes);
         return getClient(context, region);
     }
@@ -290,7 +274,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
      * @param attributes FlowFile attributes
      * @return The newly created S3 client
      */
-    protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
+    protected S3AsyncClient createClient(final ProcessContext context, final Map<String, String> attributes) {
         final Region region = resolveS3Region(context, attributes);
         return createClient(context, region);
     }

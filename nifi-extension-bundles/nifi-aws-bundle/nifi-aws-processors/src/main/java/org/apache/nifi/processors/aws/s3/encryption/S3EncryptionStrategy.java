@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.components.ValidationResult;
 
 import java.util.function.Consumer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+
 
 /**
  * This interface defines the API for S3 encryption strategies.  The methods have empty defaults
@@ -44,12 +45,12 @@ public interface S3EncryptionStrategy {
     }
 
     /**
-     * Configure an {@link InitiateMultipartUploadRequest} for encryption.
+     * Configure an {@link CreateMultipartUploadRequest} for encryption.
      * @param request the request to configure.
      * @param objectMetadata the request metadata to configure.
      * @param keyValue the key id or key material.
      */
-    default void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureInitiateMultipartUploadRequest(CreateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
     }
 
     /**
@@ -74,7 +75,7 @@ public interface S3EncryptionStrategy {
      * Create an S3 encryption client.
      *
      */
-    default AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, String kmsRegion, String keyIdOrMaterial) {
+    default S3AsyncClient createEncryptionClient(final Consumer<S3AsyncClientBuilder> clientBuilder, String kmsRegion, String keyIdOrMaterial) {
         return null;
     }
 

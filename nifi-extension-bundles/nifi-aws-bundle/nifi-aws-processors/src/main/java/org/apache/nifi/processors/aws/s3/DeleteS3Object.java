@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -37,6 +33,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3Uri;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 
@@ -95,7 +95,7 @@ public class DeleteS3Object extends AbstractS3Processor {
             return;
         }
 
-        final AmazonS3Client s3;
+        final S3AsyncClient s3;
         try {
             s3 = getS3Client(context, flowFile.getAttributes());
         } catch (Exception e) {
@@ -113,13 +113,9 @@ public class DeleteS3Object extends AbstractS3Processor {
 
         // Deletes a key on Amazon S3
         try {
-            if (versionId == null) {
-                final DeleteObjectRequest r = new DeleteObjectRequest(bucket, key);
-                // This call returns success if object doesn't exist
-                s3.deleteObject(r);
-            } else {
-                final DeleteVersionRequest r = new DeleteVersionRequest(bucket, key, versionId);
-                s3.deleteVersion(r);
+            final DeleteObjectRequest.Builder r = DeleteObjectRequest.builder().bucket(bucket).key(key);
+            if (versionId != null) {
+                r.versionId(versionId);
             }
         } catch (final IllegalArgumentException | AmazonServiceException ase) {
             flowFile = extractExceptionDetails(ase, session, flowFile);
@@ -130,7 +126,7 @@ public class DeleteS3Object extends AbstractS3Processor {
         }
 
         session.transfer(flowFile, REL_SUCCESS);
-        final String url = s3.getResourceUrl(bucket, key);
+        final String url = S3Uri.builder().bucket(bucket).key(key).build().toString();
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully delete S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
         session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object deleted");

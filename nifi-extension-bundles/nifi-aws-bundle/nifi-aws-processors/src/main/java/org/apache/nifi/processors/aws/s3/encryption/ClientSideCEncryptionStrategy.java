@@ -49,7 +49,7 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
+    public S3AsyncClient createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
         final ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
         if (!keyValidationResult.isValid()) {
             throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());

@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.internal.Constants;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.S3VersionSummary;
-import com.amazonaws.services.s3.model.Tag;
-import com.amazonaws.services.s3.model.VersionListing;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -98,6 +82,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.RequestPayer;
 
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
 
@@ -498,7 +490,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     private void listNoTracking(ProcessContext context, ProcessSession session) {
-        final AmazonS3 client = getClient(context);
+        final S3AsyncClient client = getClient(context);
 
         S3BucketLister bucketLister = getS3BucketLister(context, client);
 
@@ -585,7 +577,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return;
         }
 
-        final AmazonS3 client = getClient(context);
+        final S3AsyncClient client = getClient(context);
         final S3BucketLister bucketLister = getS3BucketLister(context, client);
         final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
@@ -749,7 +741,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 for (ListableEntityWrapper<S3VersionSummary> updatedEntity : updatedEntities) {
                     S3VersionSummary s3VersionSummary = updatedEntity.getRawEntity();
 
-                    final AmazonS3Client s3Client = getClient(context);
+                    final S3AsyncClient s3Client = getClient(context);
                     final GetObjectTaggingResult taggingResult = getTaggingResult(context, s3Client, s3VersionSummary);
                     final ObjectMetadata objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
                     writer.addToListing(s3VersionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
@@ -775,8 +767,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private GetObjectTaggingResult getTaggingResult(ProcessContext context, AmazonS3 client, S3VersionSummary versionSummary) {
-        GetObjectTaggingResult taggingResult = null;
+    private GetObjectTaggingResponse getTaggingResult(ProcessContext context, S3AsyncClient client, S3VersionSummary versionSummary) {
+        GetObjectTaggingResponse taggingResult = null;
         if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
             try {
                 taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
@@ -788,7 +780,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         return taggingResult;
     }
 
-    private ObjectMetadata getObjectMetadata(ProcessContext context, AmazonS3 client, S3VersionSummary versionSummary) {
+    private ObjectMetadata getObjectMetadata(ProcessContext context, S3AsyncClient client, S3VersionSummary versionSummary) {
         ObjectMetadata objectMetadata = null;
         if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
             try {
@@ -801,7 +793,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         return objectMetadata;
     }
 
-    private S3BucketLister getS3BucketLister(ProcessContext context, AmazonS3 client) {
+    private S3BucketLister getS3BucketLister(ProcessContext context, S3AsyncClient client) {
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
         final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
@@ -842,37 +834,41 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     public class S3ObjectBucketLister implements S3BucketLister {
-        private final AmazonS3 client;
-        private ListObjectsRequest listObjectsRequest;
-        private ObjectListing objectListing;
+        private final S3AsyncClient client;
+        private ListObjectsRequest.Builder listObjectsRequestBuilder;
+        private ListObjectsResponse objectListing;
 
-        public S3ObjectBucketLister(AmazonS3 client) {
+        public S3ObjectBucketLister(S3AsyncClient client) {
             this.client = client;
         }
 
         @Override
         public void setBucketName(String bucketName) {
-            listObjectsRequest = new ListObjectsRequest().withBucketName(bucketName);
+            listObjectsRequestBuilder.bucket(bucketName);
         }
 
         @Override
         public void setPrefix(String prefix) {
-            listObjectsRequest.setPrefix(prefix);
+            listObjectsRequestBuilder.prefix(prefix);
         }
 
         @Override
         public void setDelimiter(String delimiter) {
-            listObjectsRequest.setDelimiter(delimiter);
+            listObjectsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
         public void setRequesterPays(boolean requesterPays) {
-            listObjectsRequest.setRequesterPays(requesterPays);
+            if (requesterPays) {
+                listObjectsRequestBuilder.requestPayer(RequestPayer.REQUESTER);
+            } else {
+                listObjectsRequestBuilder.requestPayer((RequestPayer) null);
+            }
         }
 
         @Override
         public VersionListing listVersions() {
-            objectListing = client.listObjects(listObjectsRequest);
+            objectListing = client.listObjects(listObjectsRequestBuilder.build()).get();
             final VersionListing versionListing = new VersionListing();
             versionListing.setVersionSummaries(objectListing.getObjectSummaries().stream()
                     .map(ListS3.this::objectSummaryToVersionSummary)
@@ -882,7 +878,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         @Override
         public void setNextMarker() {
-            listObjectsRequest.setMarker(objectListing.getNextMarker());
+            listObjectsRequestBuilder.marker(objectListing.nextMarker());
         }
 
         @Override
@@ -892,37 +888,41 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     public class S3ObjectBucketListerVersion2 implements S3BucketLister {
-        private final AmazonS3 client;
-        private ListObjectsV2Request listObjectsRequest;
-        private ListObjectsV2Result objectListing;
+        private final S3AsyncClient client;
+        private ListObjectsV2Request.Builder listObjectsRequestBuilder;
+        private ListObjectsV2Response objectListing;
 
-        public S3ObjectBucketListerVersion2(AmazonS3 client) {
+        public S3ObjectBucketListerVersion2(S3AsyncClient client) {
             this.client = client;
         }
 
         @Override
         public void setBucketName(String bucketName) {
-            listObjectsRequest = new ListObjectsV2Request().withBucketName(bucketName);
+            listObjectsRequestBuilder.bucket(bucketName);
         }
 
         @Override
         public void setPrefix(String prefix) {
-            listObjectsRequest.setPrefix(prefix);
+            listObjectsRequestBuilder.setPrefix(prefix);
         }
 
         @Override
         public void setDelimiter(String delimiter) {
-            listObjectsRequest.setDelimiter(delimiter);
+            listObjectsRequestBuilder.setDelimiter(delimiter);
         }
 
         @Override
         public void setRequesterPays(boolean requesterPays) {
-            listObjectsRequest.setRequesterPays(requesterPays);
+            if (requesterPays) {
+                listObjectsRequestBuilder.requestPayer(RequestPayer.REQUESTER);
+            } else {
+                listObjectsRequestBuilder.requestPayer((RequestPayer) null);
+            }
         }
 
         @Override
         public VersionListing listVersions() {
-            objectListing = client.listObjectsV2(listObjectsRequest);
+            objectListing = client.listObjectsV2(listObjectsRequestBuilder.build()).get();
             final VersionListing versionListing = new VersionListing();
             versionListing.setVersionSummaries(objectListing.getObjectSummaries().stream()
                     .map(ListS3.this::objectSummaryToVersionSummary)
@@ -932,7 +932,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
         @Override
         public void setNextMarker() {
-            listObjectsRequest.setContinuationToken(objectListing.getNextContinuationToken());
+            listObjectsRequestBuilder.continuationToken(objectListing.nextContinuationToken());
         }
 
         @Override
@@ -942,11 +942,11 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     public class S3VersionBucketLister implements S3BucketLister {
-        private final AmazonS3 client;
+        private final S3AsyncClient client;
         private ListVersionsRequest listVersionsRequest;
         private VersionListing versionListing;
 
-        public S3VersionBucketLister(AmazonS3 client) {
+        public S3VersionBucketLister(S3AsyncClient client) {
             this.client = client;
         }
 
