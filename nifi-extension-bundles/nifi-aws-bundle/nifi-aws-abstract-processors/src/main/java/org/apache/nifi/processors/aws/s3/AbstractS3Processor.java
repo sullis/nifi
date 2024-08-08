@@ -199,7 +199,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         initializeSignerOverride(context, config);
         AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
 
-        final Consumer<S3AsyncClientBuilder<?, ?>> clientBuilder = builder -> {
+        final Consumer<S3AsyncClientBuilder> clientBuilder = builder -> {
             if (endpointConfiguration == null) {
                 builder.withRegion(region.getName());
             } else {
