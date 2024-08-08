@@ -26,6 +26,9 @@ import com.amazonaws.services.s3.model.KMSEncryptionMaterialsProvider;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.function.Consumer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
+
 
 /**
  * This strategy uses KMS key id to perform client-side encryption.  Use this strategy when you want the client to perform the encryption,
@@ -44,7 +47,7 @@ public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
      * @return AWS S3 client
      */
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
+    public S3AsyncClient createEncryptionClient(final Consumer<S3AsyncClientBuilder> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
         final KMSEncryptionMaterialsProvider encryptionMaterialsProvider = new KMSEncryptionMaterialsProvider(keyIdOrMaterial);
 
         final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();

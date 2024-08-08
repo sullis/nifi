@@ -110,7 +110,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
     public FileResource getFileResource(Map<String, String> attributes) {
         final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
                 .asControllerService(AWSCredentialsProviderService.class);
-        final AmazonS3 client = getS3Client(attributes, awsCredentialsProviderService.getCredentialsProvider());
+        final S3AsyncClient client = getS3Client(attributes, awsCredentialsProviderService.getCredentialsProvider());
 
         try {
             return fetchObject(client, attributes);
@@ -127,7 +127,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
      * @return fetched s3 object as FileResource
      * @throws ProcessException if the object 'bucketName/key' does not exist
      */
-    private FileResource fetchObject(final AmazonS3 client, final Map<String, String> attributes) throws ProcessException,
+    private FileResource fetchObject(final S3AsyncClient client, final Map<String, String> attributes) throws ProcessException,
             SdkClientException {
         final String bucketName = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
