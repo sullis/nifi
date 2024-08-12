@@ -39,6 +39,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 
@@ -46,9 +47,9 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGN
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.ATTRIBUTE_DEFINED_REGION;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
+import static org.apache.nifi.processors.aws.util.RegionUtilV2.ATTRIBUTE_DEFINED_REGION;
+import static org.apache.nifi.processors.aws.util.RegionUtilV2.S3_REGION;
+import static org.apache.nifi.processors.aws.util.RegionUtilV2.resolveS3Region;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<S3AsyncClient> {
 
