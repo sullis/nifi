@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.MultipartUpload;
+import com.amazonaws.services.s3.model.MultipartUploadListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -65,23 +88,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Uri;
-import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadResponse;
-import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
-import software.amazon.awssdk.services.s3.model.ListMultipartUploadsResponse;
-import software.amazon.awssdk.services.s3.model.MultipartUpload;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.services.s3.model.StorageClass;
-import software.amazon.awssdk.services.s3.model.UploadPartRequest;
-import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 
-import static org.apache.nifi.processors.aws.util.RegionUtilV2.S3_REGION;
+import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
@@ -173,7 +181,7 @@ public class PutS3Object extends AbstractS3Processor {
             .name("Storage Class")
             .required(true)
             .allowableValues(STORAGE_CLASSES)
-            .defaultValue(StorageClass.STANDARD.name())
+            .defaultValue(StorageClass.Standard.name())
             .build();
 
     public static final PropertyDescriptor MULTIPART_THRESHOLD = new PropertyDescriptor.Builder()
@@ -340,19 +348,19 @@ public class PutS3Object extends AbstractS3Processor {
         return new File(this.tempDirMultipart + File.separator + getIdentifier());
     }
 
-    protected boolean localUploadExistsInS3(final S3AsyncClient s3, final String bucket, final MultipartState localState) {
-        ListMultipartUploadsRequest listRequest = ListMultipartUploadsRequest.builder().bucket(bucket).build();
-        ListMultipartUploadsResponse listing = s3.listMultipartUploads(listRequest).get();
+    protected boolean localUploadExistsInS3(final AmazonS3 s3, final String bucket, final MultipartState localState) {
+        ListMultipartUploadsRequest listRequest = new ListMultipartUploadsRequest(bucket);
+        MultipartUploadListing listing = s3.listMultipartUploads(listRequest);
 
-        for (MultipartUpload upload : listing.uploads()) {
-            if (upload.uploadId().equals(localState.getUploadId())) {
+        for (MultipartUpload upload : listing.getMultipartUploads()) {
+            if (upload.getUploadId().equals(localState.getUploadId())) {
                 return true;
             }
         }
         return false;
     }
 
-    protected synchronized MultipartState getLocalStateIfInS3(final S3AsyncClient s3, final String bucket,
+    protected synchronized MultipartState getLocalStateIfInS3(final AmazonS3 s3, final String bucket,
             final String s3ObjectKey) throws IOException {
         MultipartState currState = getLocalState(s3ObjectKey);
         if (currState == null) {
@@ -475,7 +483,7 @@ public class PutS3Object extends AbstractS3Processor {
             return;
         }
 
-        final S3AsyncClient s3;
+        final AmazonS3Client s3;
 
         try {
            s3  = getS3Client(context, flowFile.getAttributes());
@@ -582,13 +590,13 @@ public class PutS3Object extends AbstractS3Processor {
                     //----------------------------------------
                     // single part upload
                     //----------------------------------------
-                    final PutObjectRequest.Builder request = PutObjectRequest.builder().bucket(bucket).key(key).foobar in, objectMetadata);
+                    final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
                     if (encryptionService != null) {
                         encryptionService.configurePutObjectRequest(request, objectMetadata);
                         attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
                     }
 
-                    request.storageClass(StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
+                    request.setStorageClass(StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
                     final AccessControlList acl = createACL(context, ff);
                     if (acl != null) {
                         request.setAccessControlList(acl);
@@ -604,17 +612,17 @@ public class PutS3Object extends AbstractS3Processor {
                     }
 
                     try {
-                        final PutObjectResponse result = s3.putObject(request. AsyncRequestBody.x()).get();
-                        if (result.versionId() != null) {
-                            attributes.put(S3_VERSION_ATTR_KEY, result.versionId());
+                        final PutObjectResult result = s3.putObject(request);
+                        if (result.getVersionId() != null) {
+                            attributes.put(S3_VERSION_ATTR_KEY, result.getVersionId());
                         }
-                        if (result.eTag() != null) {
-                            attributes.put(S3_ETAG_ATTR_KEY, result.eTag());
+                        if (result.getETag() != null) {
+                            attributes.put(S3_ETAG_ATTR_KEY, result.getETag());
                         }
-                        if (result.expiration() != null) {
-                            attributes.put(S3_EXPIRATION_ATTR_KEY, result.expiration());
+                        if (result.getExpirationTime() != null) {
+                            attributes.put(S3_EXPIRATION_ATTR_KEY, result.getExpirationTime().toString());
                         }
-                        if (result.responseMetadata().xyz != null) {
+                        if (result.getMetadata().getStorageClass() != null) {
                             attributes.put(S3_STORAGECLASS_ATTR_KEY, result.getMetadata().getStorageClass());
                         } else {
                             attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.Standard.toString());
@@ -627,7 +635,7 @@ public class PutS3Object extends AbstractS3Processor {
                             attributes.put(S3_USERMETA_ATTR_KEY, userMetaBldr.toString());
                         }
                         attributes.put(S3_API_METHOD_ATTR_KEY, S3_API_METHOD_PUTOBJECT);
-                    } catch (SdkException e) {
+                    } catch (AmazonClientException e) {
                         getLogger().info("Failure completing upload flowfile={} bucket={} key={} reason={}",
                                 ffFilename, bucket, key, e.getMessage());
                         throw (e);
@@ -683,8 +691,7 @@ public class PutS3Object extends AbstractS3Processor {
                     // initiate multipart upload or find position in file
                     //------------------------------------------------------------
                     if (currentState.getUploadId().isEmpty()) {
-                        final CreateMultipartUploadRequest.Builder
-                            initiateRequest = CreateMultipartUploadRequest.builder().bucket(bucket).key(key).foobar, objectMetadata);
+                        final InitiateMultipartUploadRequest initiateRequest = new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
                         if (encryptionService != null) {
                             encryptionService.configureInitiateMultipartUploadRequest(initiateRequest, objectMetadata);
                             attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
@@ -754,10 +761,10 @@ public class PutS3Object extends AbstractS3Processor {
                         thisPartSize = Math.min(currentState.getPartSize(),
                                 (currentState.getContentLength() - currentState.getFilePosition()));
                         isLastPart = currentState.getContentLength() == currentState.getFilePosition() + thisPartSize;
-                        UploadPartRequest uploadRequest = UploadPartRequest.builder()
-                                .bucket(bucket)
-                                .key(key)
-                                .uploadId(currentState.getUploadId())
+                        UploadPartRequest uploadRequest = new UploadPartRequest()
+                                .withBucketName(bucket)
+                                .withKey(key)
+                                .withUploadId(currentState.getUploadId())
                                 .withInputStream(in)
                                 .withPartNumber(part)
                                 .withPartSize(thisPartSize)
@@ -766,7 +773,7 @@ public class PutS3Object extends AbstractS3Processor {
                             encryptionService.configureUploadPartRequest(uploadRequest, objectMetadata);
                         }
                         try {
-                            UploadPartResponse uploadPartResult = s3.uploadPart(uploadRequest);
+                            UploadPartResult uploadPartResult = s3.uploadPart(uploadRequest);
                             currentState.addPartETag(uploadPartResult.getPartETag());
                             currentState.setFilePosition(currentState.getFilePosition() + thisPartSize);
                             try {
@@ -790,12 +797,12 @@ public class PutS3Object extends AbstractS3Processor {
 
                     // complete multipart upload
                     //------------------------------------------------------------
-                    CompleteMultipartUploadRequest completeRequest = CompleteMultipartUploadRequest.builder().foobar
+                    CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
                             bucket, key, currentState.getUploadId(), currentState.getPartETags());
 
                     // No call to an encryption service is needed for a CompleteMultipartUploadRequest.
                     try {
-                        CompleteMultipartUploadResponse completeResult =
+                        CompleteMultipartUploadResult completeResult =
                                 s3.completeMultipartUpload(completeRequest);
                         getLogger().info("Success completing upload flowfile={} etag={} uploadId={}",
                                 ffFilename, completeResult.getETag(), currentState.getUploadId());
@@ -831,7 +838,7 @@ public class PutS3Object extends AbstractS3Processor {
                 throw e;
             }
 
-            final String url = S3Uri.builder().bucket(bucket).key(key).build().toString();
+            final String url = s3.getResourceUrl(bucket, key);
             attributes.put("s3.url", url);
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
@@ -862,14 +869,14 @@ public class PutS3Object extends AbstractS3Processor {
     private final Lock s3BucketLock = new ReentrantLock();
     private final AtomicLong lastS3AgeOff = new AtomicLong(0L);
 
-    protected void ageoffS3Uploads(final ProcessContext context, final S3AsyncClient s3, final long now, String bucket) {
-        ListMultipartUploadsResponse oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now, bucket);
-        for (MultipartUpload upload : oldUploads.uploads()) {
-            abortS3MultipartUpload(s3, oldUploads.bucket(), upload);
+    protected void ageoffS3Uploads(final ProcessContext context, final AmazonS3 s3, final long now, String bucket) {
+        MultipartUploadListing oldUploads = getS3AgeoffListAndAgeoffLocalState(context, s3, now, bucket);
+        for (MultipartUpload upload : oldUploads.getMultipartUploads()) {
+            abortS3MultipartUpload(s3, oldUploads.getBucketName(), upload);
         }
     }
 
-    protected ListMultipartUploadsResponse getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final S3AsyncClient s3, final long now, String bucket) {
+    protected MultipartUploadListing getS3AgeoffListAndAgeoffLocalState(final ProcessContext context, final AmazonS3 s3, final long now, String bucket) {
         final long ageoffInterval = context.getProperty(MULTIPART_S3_AGEOFF_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final Long maxAge = context.getProperty(MULTIPART_S3_MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long ageCutoff = now - maxAge;
@@ -878,10 +885,10 @@ public class PutS3Object extends AbstractS3Processor {
         if ((lastS3AgeOff.get() < now - ageoffInterval) && s3BucketLock.tryLock()) {
             try {
 
-                ListMultipartUploadsRequest listRequest = ListMultipartUploadsRequest.builder().bucket(bucket);
-                ListMultipartUploadsResponse listing = s3.listMultipartUploads(listRequest).get();
-                for (MultipartUpload upload : listing.uploads()) {
-                    long uploadTime = upload.initiated().toEpochMilli();
+                ListMultipartUploadsRequest listRequest = new ListMultipartUploadsRequest(bucket);
+                MultipartUploadListing listing = s3.listMultipartUploads(listRequest);
+                for (MultipartUpload upload : listing.getMultipartUploads()) {
+                    long uploadTime = upload.getInitiated().getTime();
                     if (uploadTime < ageCutoff) {
                         ageoffList.add(upload);
                     }
@@ -906,25 +913,25 @@ public class PutS3Object extends AbstractS3Processor {
                 s3BucketLock.unlock();
             }
         }
-        ListMultipartUploadsResponse.Builder result = ListMultipartUploadsResponse.builder();
-        result.bucket(bucket);
-        result.uploads(ageoffList);
-        return result.build();
+        MultipartUploadListing result = new MultipartUploadListing();
+        result.setBucketName(bucket);
+        result.setMultipartUploads(ageoffList);
+        return result;
     }
 
-    protected void abortS3MultipartUpload(final S3AsyncClient s3, final String bucket, final MultipartUpload upload) {
-        final String uploadKey = upload.key();
-        final String uploadId = upload.uploadId();
-        final AbortMultipartUploadRequest abortRequest = AbortMultipartUploadRequest.builder().foobar
+    protected void abortS3MultipartUpload(final AmazonS3 s3, final String bucket, final MultipartUpload upload) {
+        final String uploadKey = upload.getKey();
+        final String uploadId = upload.getUploadId();
+        final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(
                 bucket, uploadKey, uploadId);
         // No call to an encryption service is necessary for an AbortMultipartUploadRequest.
         try {
-            s3.abortMultipartUpload(abortRequest).get();
+            s3.abortMultipartUpload(abortRequest);
             getLogger().info("Aborting out of date multipart upload, bucket {} key {} ID {}, initiated {}",
-                    bucket, uploadKey, uploadId, upload.initiated());
-        } catch (Exception e) {
+                    bucket, uploadKey, uploadId, upload.getInitiated());
+        } catch (AmazonClientException ace) {
             getLogger().info("Error trying to abort multipart upload from bucket {} with key {} and ID {}: {}",
-                    bucket, uploadKey, uploadId, e.getMessage());
+                    bucket, uploadKey, uploadId, ace.getMessage());
         }
     }
 
@@ -956,7 +963,7 @@ public class PutS3Object extends AbstractS3Processor {
 
         private String uploadId;
         private Long filePosition;
-        private List<String> partETags;
+        private List<PartETag> partETags;
         private Long partSize;
         private StorageClass storageClass;
         private Long contentLength;
@@ -967,7 +974,7 @@ public class PutS3Object extends AbstractS3Processor {
             filePosition = 0L;
             partETags = new ArrayList<>();
             partSize = 0L;
-            storageClass = StorageClass.STANDARD;
+            storageClass = StorageClass.Standard;
             contentLength = 0L;
             timestamp = System.currentTimeMillis();
         }
