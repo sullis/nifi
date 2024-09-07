@@ -18,10 +18,10 @@
 package org.apache.nifi.processors.aws.s3.service;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import software.amazon.awssdk.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.S3ObjectInputStream;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;

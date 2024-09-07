@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.DeleteVersionRequest;
+import software.amazon.awssdk.services.s3.AmazonS3Client;
+import software.amazon.awssdk.services.s3.model.AmazonS3Exception;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;

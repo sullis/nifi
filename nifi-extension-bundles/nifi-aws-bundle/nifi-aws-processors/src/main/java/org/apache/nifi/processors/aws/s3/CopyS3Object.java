@@ -17,10 +17,10 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.AmazonS3Client;
+import software.amazon.awssdk.services.s3.model.AccessControlList;
+import software.amazon.awssdk.services.s3.model.CannedAccessControlList;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;

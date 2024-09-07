@@ -24,7 +24,7 @@ import java.util.Map;
 
 public enum AwsSignerType implements DescribedValue {
 
-    // AWS_***_SIGNERs must follow the names in com.amazonaws.auth.SignerFactory and com.amazonaws.services.s3.AmazonS3Client
+    // AWS_***_SIGNERs must follow the names in com.amazonaws.auth.SignerFactory and software.amazon.awssdk.services.s3.AmazonS3Client
     DEFAULT_SIGNER("Default Signature", "Default Signature"),
     AWS_V4_SIGNER(SignerFactory.VERSION_FOUR_SIGNER, "Signature Version 4"),
     AWS_S3_V4_SIGNER("AWSS3V4SignerType", "Signature Version 4"), // AmazonS3Client.S3_V4_SIGNER

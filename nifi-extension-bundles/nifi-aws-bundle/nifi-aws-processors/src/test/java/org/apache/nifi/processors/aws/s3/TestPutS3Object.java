@@ -25,16 +25,16 @@ import com.amazonaws.auth.SignerParams;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.internal.AWSS3V4Signer;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.AmazonS3Client;
+import software.amazon.awssdk.services.s3.internal.AWSS3V4Signer;
+import software.amazon.awssdk.services.s3.model.AmazonS3Exception;
+import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
+import software.amazon.awssdk.services.s3.model.MultipartUploadListing;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.StorageClass;
+import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.fileresource.service.api.FileResource;
@@ -273,13 +273,13 @@ public class TestPutS3Object {
     }
 
     private void initMocks() {
-        PutObjectResult putObjectResult = new PutObjectResult();
-        putObjectResult.setExpirationTime(new Date());
-        putObjectResult.setMetadata(new ObjectMetadata());
-        putObjectResult.setVersionId("test-version");
-        putObjectResult.setETag("test-etag");
+        PutObjectResponse PutObjectResponse = new PutObjectResponse();
+        PutObjectResponse.setExpirationTime(new Date());
+        PutObjectResponse.setMetadata(new ObjectMetadata());
+        PutObjectResponse.setVersionId("test-version");
+        PutObjectResponse.setETag("test-etag");
 
-        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(putObjectResult);
+        when(mockS3Client.putObject(Mockito.any(PutObjectRequest.class))).thenReturn(PutObjectResponse);
 
         MultipartUploadListing uploadListing = new MultipartUploadListing();
         when(mockS3Client.listMultipartUploads(Mockito.any(ListMultipartUploadsRequest.class))).thenReturn(uploadListing);

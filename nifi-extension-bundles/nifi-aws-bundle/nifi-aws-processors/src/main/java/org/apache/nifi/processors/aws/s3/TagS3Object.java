@@ -17,12 +17,12 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.ObjectTagging;
-import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.AmazonS3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResult;
+import software.amazon.awssdk.services.s3.model.ObjectTagging;
+import software.amazon.awssdk.services.s3.model.SetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;

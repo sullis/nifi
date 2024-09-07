@@ -17,28 +17,28 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.ObjectTagging;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.AccessControlList;
+import software.amazon.awssdk.services.s3.model.AmazonS3Exception;
+import software.amazon.awssdk.services.s3.model.CannedAccessControlList;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
+import software.amazon.awssdk.services.s3.model.MultipartUpload;
+import software.amazon.awssdk.services.s3.model.MultipartUploadListing;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.ObjectTagging;
+import software.amazon.awssdk.services.s3.model.PartETag;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.StorageClass;
+import software.amazon.awssdk.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartResponse;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -181,7 +181,7 @@ public class PutS3Object extends AbstractS3Processor {
             .name("Storage Class")
             .required(true)
             .allowableValues(STORAGE_CLASSES)
-            .defaultValue(StorageClass.Standard.name())
+            .defaultValue(StorageClass.STANDARD.name())
             .build();
 
     public static final PropertyDescriptor MULTIPART_THRESHOLD = new PropertyDescriptor.Builder()
@@ -612,7 +612,7 @@ public class PutS3Object extends AbstractS3Processor {
                     }
 
                     try {
-                        final PutObjectResult result = s3.putObject(request);
+                        final PutObjectResponse result = s3.putObject(request);
                         if (result.getVersionId() != null) {
                             attributes.put(S3_VERSION_ATTR_KEY, result.getVersionId());
                         }
@@ -625,7 +625,7 @@ public class PutS3Object extends AbstractS3Processor {
                         if (result.getMetadata().getStorageClass() != null) {
                             attributes.put(S3_STORAGECLASS_ATTR_KEY, result.getMetadata().getStorageClass());
                         } else {
-                            attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.Standard.toString());
+                            attributes.put(S3_STORAGECLASS_ATTR_KEY, StorageClass.STANDARD.toString());
                         }
                         if (userMetadata.size() > 0) {
                             StringBuilder userMetaBldr = new StringBuilder();
@@ -773,8 +773,8 @@ public class PutS3Object extends AbstractS3Processor {
                             encryptionService.configureUploadPartRequest(uploadRequest, objectMetadata);
                         }
                         try {
-                            UploadPartResult uploadPartResult = s3.uploadPart(uploadRequest);
-                            currentState.addPartETag(uploadPartResult.getPartETag());
+                            UploadPartResponse UploadPartResponse = s3.uploadPart(uploadRequest);
+                            currentState.addPartETag(UploadPartResponse.getPartETag());
                             currentState.setFilePosition(currentState.getFilePosition() + thisPartSize);
                             try {
                                 persistLocalState(cacheKey, currentState);
@@ -788,7 +788,7 @@ public class PutS3Object extends AbstractS3Processor {
                                 // in case of the last part, the stream is already closed
                             }
                             getLogger().info("Success uploading part flowfile={} part={} available={} etag={} uploadId={}",
-                                    ffFilename, part, available, uploadPartResult.getETag(), currentState.getUploadId());
+                                    ffFilename, part, available, UploadPartResponse.getETag(), currentState.getUploadId());
                         } catch (AmazonClientException e) {
                             getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={}", ffFilename, part, bucket, key, e);
                             throw (e);
@@ -919,7 +919,7 @@ public class PutS3Object extends AbstractS3Processor {
         return result;
     }
 
-    protected void abortS3MultipartUpload(final AmazonS3 s3, final String bucket, final MultipartUpload upload) {
+    protected void abortS3MultipartUpload(final S3Client s3, final String bucket, final MultipartUpload upload) {
         final String uploadKey = upload.getKey();
         final String uploadId = upload.getUploadId();
         final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(
@@ -974,7 +974,7 @@ public class PutS3Object extends AbstractS3Processor {
             filePosition = 0L;
             partETags = new ArrayList<>();
             partSize = 0L;
-            storageClass = StorageClass.Standard;
+            storageClass = StorageClass.STANDARD;
             contentLength = 0L;
             timestamp = System.currentTimeMillis();
         }

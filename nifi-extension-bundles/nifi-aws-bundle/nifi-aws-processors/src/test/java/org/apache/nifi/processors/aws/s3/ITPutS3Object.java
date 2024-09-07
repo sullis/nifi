@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResult;
+import software.amazon.awssdk.services.s3.model.ListMultipartUploadsRequest;
+import software.amazon.awssdk.services.s3.model.MultipartUpload;
+import software.amazon.awssdk.services.s3.model.MultipartUploadListing;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.PartETag;
+import software.amazon.awssdk.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.services.s3.model.StorageClass;
+import software.amazon.awssdk.services.s3.model.Tag;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.fileresource.service.StandardFileResourceService;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
@@ -478,7 +478,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals((Long) 0L, state1.getFilePosition());
         assertEquals(0L, state1.getPartETags().size());
         assertEquals((Long) 0L, state1.getPartSize());
-        assertEquals(StorageClass.Standard.toString(), state1.getStorageClass().toString());
+        assertEquals(StorageClass.STANDARD.toString(), state1.getStorageClass().toString());
         assertEquals((Long) 0L, state1.getContentLength());
     }
 
@@ -567,7 +567,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(0L, state1new.getFilePosition().longValue());
         assertEquals(new ArrayList<PartETag>(), state1new.getPartETags());
         assertEquals(0L, state1new.getPartSize().longValue());
-        assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state1new.getStorageClass());
+        assertEquals(StorageClass.fromValue(StorageClass.STANDARD.toString()), state1new.getStorageClass());
         assertEquals(0L, state1new.getContentLength().longValue());
 
         final PutS3Object.MultipartState state2new = processor.getLocalStateIfInS3(mockClient, bucket, cacheKey2);
@@ -575,7 +575,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(0L, state2new.getFilePosition().longValue());
         assertEquals(new ArrayList<PartETag>(), state2new.getPartETags());
         assertEquals(0L, state2new.getPartSize().longValue());
-        assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state2new.getStorageClass());
+        assertEquals(StorageClass.fromValue(StorageClass.STANDARD.toString()), state2new.getStorageClass());
         assertEquals(1234L, state2new.getContentLength().longValue());
 
         final PutS3Object.MultipartState state3new = processor.getLocalStateIfInS3(mockClient, bucket, cacheKey3);
@@ -583,7 +583,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(0L, state3new.getFilePosition().longValue());
         assertEquals(new ArrayList<PartETag>(), state3new.getPartETags());
         assertEquals(0L, state3new.getPartSize().longValue());
-        assertEquals(StorageClass.fromValue(StorageClass.Standard.toString()), state3new.getStorageClass());
+        assertEquals(StorageClass.fromValue(StorageClass.STANDARD.toString()), state3new.getStorageClass());
         assertEquals(5678L, state3new.getContentLength().longValue());
     }
 

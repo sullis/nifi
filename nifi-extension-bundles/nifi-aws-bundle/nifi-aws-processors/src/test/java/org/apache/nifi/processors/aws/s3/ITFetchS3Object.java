@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
+import software.amazon.awssdk.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;

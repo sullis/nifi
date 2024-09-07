@@ -17,12 +17,12 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
-import com.amazonaws.services.s3.model.CryptoConfigurationV2;
-import com.amazonaws.services.s3.model.KMSEncryptionMaterialsProvider;
+import software.amazon.awssdk.services.s3.AmazonS3;
+import software.amazon.awssdk.services.s3.AmazonS3Builder;
+import software.amazon.awssdk.services.s3.AmazonS3EncryptionClientV2;
+import software.amazon.awssdk.services.s3.AmazonS3EncryptionClientV2Builder;
+import software.amazon.awssdk.services.s3.model.CryptoConfigurationV2;
+import software.amazon.awssdk.services.s3.model.KMSEncryptionMaterialsProvider;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.function.Consumer;
