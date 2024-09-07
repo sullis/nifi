@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.GetObjectTaggingResult;
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
+import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -39,14 +46,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import software.amazon.awssdk.core.exception.SdkException;
-import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.S3Uri;
-import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
-import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
-import software.amazon.awssdk.services.s3.model.Tag;
-import software.amazon.awssdk.services.s3.model.Tagging;
 
 import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
 
@@ -136,7 +135,7 @@ public class TagS3Object extends AbstractS3Processor {
             return;
         }
 
-        final S3AsyncClient s3;
+        final AmazonS3Client s3;
         try {
             s3 = getS3Client(context, flowFile.getAttributes());
         } catch (Exception e) {
@@ -176,24 +175,24 @@ public class TagS3Object extends AbstractS3Processor {
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
 
-        PutObjectTaggingRequest.Builder putTaggingBuilder = null;
+        SetObjectTaggingRequest r;
         List<Tag> tags = new ArrayList<>();
 
         try {
             if (context.getProperty(APPEND_TAG).asBoolean()) {
-                final GetObjectTaggingRequest gr = GetObjectTaggingRequest.builder().bucket(bucket).key(key).build();
-                GetObjectTaggingResponse res = s3.getObjectTagging(gr).get();
+                final GetObjectTaggingRequest gr = new GetObjectTaggingRequest(bucket, key);
+                GetObjectTaggingResult res = s3.getObjectTagging(gr);
 
                 // preserve tags on S3 object, but filter out existing tag keys that match the one we're setting
-                tags = res.tagSet().stream().filter(t -> !t.key().equals(newTagKey)).collect(Collectors.toList());
+                tags = res.getTagSet().stream().filter(t -> !t.getKey().equals(newTagKey)).collect(Collectors.toList());
             }
 
-            tags.add(Tag.builder().key(newTagKey).value(newTagVal).build());
-
-            putTaggingBuilder.bucket(bucket).key(key);
+            tags.add(new Tag(newTagKey, newTagVal));
 
             if (StringUtils.isBlank(version)) {
-                putTaggingBuilder.versionId(version);
+                r = new SetObjectTaggingRequest(bucket, key, new ObjectTagging(tags));
+            } else {
+                r = new SetObjectTaggingRequest(bucket, key, version, new ObjectTagging(tags));
             }
             s3.setObjectTagging(r);
         } catch (final IllegalArgumentException | AmazonServiceException ase) {
@@ -207,7 +206,7 @@ public class TagS3Object extends AbstractS3Processor {
         flowFile = setTagAttributes(session, flowFile, tags);
 
         session.transfer(flowFile, REL_SUCCESS);
-        final String url = S3Uri.builder().bucket(bucket).key(key).build().toString();
+        final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully tagged S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
         session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object tagged");
@@ -223,7 +222,7 @@ public class TagS3Object extends AbstractS3Processor {
         flowFile = session.removeAllAttributes(flowFile, Pattern.compile("^s3\\.tag\\..*"));
 
         final Map<String, String> tagAttrs = new HashMap<>();
-        tags.forEach(t -> tagAttrs.put("s3.tag." + t.key(), t.value()));
+        tags.forEach(t -> tagAttrs.put("s3.tag." + t.getKey(), t.getValue()));
         flowFile = session.putAllAttributes(flowFile, tagAttrs);
         return flowFile;
     }
