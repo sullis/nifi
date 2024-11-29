@@ -1,0 +1,7 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: nifi.InternalBestPractices
+displayName: Apache NiFi internal recipe
+description: Apache NiFi internal recipe
+recipeList:
+  - org.openrewrite.java.jspecify.MigrateToJspecify
